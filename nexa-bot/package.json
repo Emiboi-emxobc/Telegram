@@ -1,0 +1,12 @@
+{
+  "name": "nexa-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node -r dotenv/config bot.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
