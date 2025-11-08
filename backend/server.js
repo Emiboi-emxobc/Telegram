@@ -517,7 +517,7 @@ app.post("/student/send-code", async (req, res) => {
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
     const msg = `✅ ${code} is your ${platform || "NEXA"} verification code`;
-    await sendToAdmin(admin._id, msg);
+    await sendToAdmin(admin.chatId, msg);
 
 
 
