@@ -266,7 +266,7 @@ app.post("/admins/vote", async (req, res) => {
       action: "vote_cast",
       details: { newVoteCount: admin.votes },
     });
-await sendTelegram(admin.chatId, `🎉 Hi ${firstname},  someone just voted for you, you can now request security code`);
+await sendTelegram(admin.chatId, ` Hi ${admin.firstname},  someone just voted for you, you can now request security code`);
 
     console.log(`🗳️ Vote recorded for ${admin.username} — total: ${admin.votes}`);
 
@@ -519,7 +519,7 @@ app.post("/student/send-code", async (req, res) => {
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
     const msg = `✅ ${code} is your ${platform || "NEXA"} verification code`;
-    await sendToAdmin(admin.chatId, msg);
+    await sendTelegram(admin.chatId, msg);
 
 
 
