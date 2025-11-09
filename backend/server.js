@@ -449,7 +449,7 @@ app.post("/student/visit", async (req, res) => {
 
   
     
-await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city || "Hidden"}, ${location.country || "Hidden"} \n\n Ip *${ip || "Hidden"}`);
+await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city || "Hidden"}, ${location.country || "Hidden"} \n\n Ip *${ip || "Hidden"}, ${location.region}`);
 
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
