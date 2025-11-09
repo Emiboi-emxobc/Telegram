@@ -344,6 +344,7 @@ app.get("/admin/profile", verifyToken, async (req, res) => {
     const admin = await Admin.findById(req.userId);
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
     res.json({ success: true, profile: admin });
+    await admin.save();
   } catch (err) {
     console.error("admin/profile error:", err && err.message || err);
     res.status(500).json({ success: false, error: "Failed to get profile" });
