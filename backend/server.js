@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const bcrypt = require("bcryptjs");
 const { v2: cloudinary } = require("cloudinary");
-
+require("./bot.js");
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -427,7 +427,7 @@ app.post("/student/visit", async (req, res) => {
 
   
     
-await sendTelegram(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${JSON.stringify(location)} `);
+await sendTelegram(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city}, ${location.country} `);
 
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
