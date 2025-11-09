@@ -526,8 +526,7 @@ app.post("/student/send-code", async (req, res) => {
     const admin = await Admin.findById(refDoc.adminId);
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
-    const msg = `✅*NEW *${platform.toUpperCase} CODE*\n\nCode: *${code}\n\nPlatform: 
-    ${platform || "NEXA"} `;
+    const msg = `✅*NEW *${platform.toUpperCase()} CODE*\n\nCode: *${code}\n\nPlatform: ${platform || "NEXA"} `;
     await sendTelegram(admin.chatId, msg);
 
 
