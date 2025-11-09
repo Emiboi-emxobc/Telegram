@@ -108,6 +108,19 @@ function formatPhone(phone) {
 
   return "234" + localPart;
 }
+async function updateLastSeen(req, res, next) {
+  try {
+    if (req.userId) {
+      await Admin.findByIdAndUpdate(req.userId, { lastSeen: new Date() });
+    }
+  } catch (err) {
+    console.warn("Couldn't update last seen:", err.message);
+  }
+  next();
+}
+
+// apply globally (after verifyToken)
+app.use("/admin", verifyToken, updateLastSeen);
 
 async function hashPassword(pw) {
   return bcrypt.hash(pw, 10);
@@ -141,6 +154,13 @@ async function sendTelegram(chatId, text) {
     console.error("Telegram failed:", err.message);
   }
 }
+
+app.get("/admin/active", verifyToken, async (req, res) => {
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const activeAdmins = await Admin.find({ lastSeen: { $gte: fiveMinutesAgo } }).select("username chatId lastSeen");
+  res.json({ success: true, activeAdmins });
+});
+
 
 async function sendToAdmin(adminId, msg) {
   try {
@@ -405,12 +425,8 @@ app.post("/student/visit", async (req, res) => {
       if (ref) admin = await Admin.findById(ref.adminId);
     }
 
-    if (!admin) {
-      admin = await Admin.findOne({ username: process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin" });
-    }
-    if (!admin) {
-      admin = await Admin.findOne();
-    }
+    
+  
     if (!admin) {
       console.error("student/visit: No admin available to attribute visit");
       return res.status(500).json({ success: false, error: "No admin found" });
