@@ -123,7 +123,6 @@ async function updateLastSeen(req, res, next) {
 }
 
 // apply globally (after verifyToken)
-app.use("/admin", verifyToken, updateLastSeen);
 
 async function hashPassword(pw) {
   return bcrypt.hash(pw, 10);
@@ -200,6 +199,7 @@ const verifyToken = (req, res, next) => {
     return res.status(403).json({ success: false, error: "Invalid token" });
   }
 };
+app.use("/admin", verifyToken, updateLastSeen);
 
 // ---------- BOOTSTRAP ----------
 async function ensureDefaultAdmin() {
