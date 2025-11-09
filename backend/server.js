@@ -341,7 +341,7 @@ app.post("/admin/login", async (req, res) => {
 // 👤 Admin Profile
 app.get("/admin/profile", verifyToken, async (req, res) => {
   try {
-    const admin = await Admin.findById(req.userId).select("-password");
+    const admin = await Admin.findById(req.userId);
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
     res.json({ success: true, profile: admin });
   } catch (err) {
