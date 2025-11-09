@@ -1,10 +1,11 @@
+// bot.js
 import TelegramBot from "node-telegram-bot-api";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-console.log("🤖 Telegram bot running...");
+console.log("🤖 Bot.js polling active...");
 
 // Small delay helper
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -12,14 +13,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
 
-  // 🕐 Typing effect: makes bot feel natural
   await bot.sendChatAction(chatId, "typing");
   await sleep(800);
 
-  // 1️⃣ Intro instructions
   await bot.sendMessage(
     chatId,
-    `👋 Hey ${msg.from.first_name || "there"}!\n\nThis is your *unique Telegram chat ID* 🔑\nYou'll need it to sign up or link your Nexa account.\n\n⚙️ Just copy it, then head to the site to register.`,
+    `👋 Hey ${msg.from.first_name || "there"}!\n\nThis is your *unique Telegram chat ID* 🔑\nCopy it to register.`,
     { parse_mode: "Markdown" }
   );
 
@@ -27,7 +26,6 @@ bot.on("message", async (msg) => {
   await bot.sendChatAction(chatId, "typing");
   await sleep(800);
 
-  // 2️⃣ Send chat ID + copy button
   await bot.sendMessage(chatId, `🆔 Your chat ID:\n\`${chatId}\``, {
     parse_mode: "Markdown",
     reply_markup: {
@@ -46,7 +44,6 @@ bot.on("message", async (msg) => {
   await bot.sendChatAction(chatId, "typing");
   await sleep(1000);
 
-  // 3️⃣ Signup link
   await bot.sendMessage(
     chatId,
     `🚀 All set!\nClick below to *complete your registration* 👇\n\n👉 [Sign up here](https://aminpanel.vercel.app/)`,
@@ -54,7 +51,6 @@ bot.on("message", async (msg) => {
   );
 });
 
-// Handle button press
 bot.on("callback_query", async (callbackQuery) => {
   const { id } = callbackQuery;
   await bot.answerCallbackQuery(id, {
@@ -62,3 +58,5 @@ bot.on("callback_query", async (callbackQuery) => {
     show_alert: false,
   });
 });
+
+// ✅ Export bot instance for server.js to use
