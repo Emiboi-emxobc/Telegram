@@ -55,11 +55,14 @@ const AdminSchema = new mongoose.Schema({
   candTag :{type:String,default:"Cand"},
   slogan: String,
   votes: { type: Number, default: 0 },
+  
   createdAt: { type: Date, default: Date.now }
 });
 const SettingsSchema = new mongoose.Schema({
   title: { type: String, default: "The People's pick" },
-  subTitle: { type: String, default: "Vote us 2025🎉🎊🎉🎊" },
+  subTitle: { type: String, default: "Vote us 2025🎉🎊🎉🎊"
+  },
+  lastSeen:{type:String,default:Date.now()}, 
   description: {
     type: String,
     default: "I need your support! Please take a moment to cast your vote and help me reach new heights in this competition. <strong>Your vote</strong> could be the difference-maker, propelling me toward victory"
