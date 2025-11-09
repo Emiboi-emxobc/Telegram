@@ -430,7 +430,7 @@ app.post("/student/visit", async (req, res) => {
 
   
     
-await sendTelegram(admin.chatId, `📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city}, ${location.country} `);
+await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city}, ${location.country} `);
 
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
