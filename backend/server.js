@@ -588,6 +588,30 @@ app.get("/admin/activity", verifyToken, async (req, res) => {
   }
 });
 
+app.post("/admin/avatar", verifyToken, upload.single("avatar"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded" });
+
+    const result = await cloudinary.uploader.upload_stream(
+      { folder: CLOUDINARY_FOLDER },
+      async (error, result) => {
+        if (error) return res.status(500).json({ success: false, error: error.message });
+
+        const admin = await Admin.findById(req.userId);
+        admin.avatar = result.secure_url;
+        await admin.save();
+
+        res.json({ success: true, message: "Avatar updated", avatar: admin.avatar });
+      }
+    );
+
+    result.end(req.file.buffer);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 // Broadcast / notify all admins (admin-only route)
 app.post("/admin/broadcast", verifyToken, async (req, res) => {
   try {
