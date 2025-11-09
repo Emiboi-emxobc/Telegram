@@ -6,17 +6,29 @@ dotenv.config();
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 console.log("🤖 Telegram bot running...");
 
+// Small delay helper
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
 
-  // 1️⃣ Step 1 — Send instructions
+  // 🕐 Typing effect: makes bot feel natural
+  await bot.sendChatAction(chatId, "typing");
+  await sleep(800);
+
+  // 1️⃣ Intro instructions
   await bot.sendMessage(
     chatId,
-    "👋 Hey there! This is your unique chat ID — you'll need it to register your Nexa account or link your admin panel."
+    `👋 Hey ${msg.from.first_name || "there"}!\n\nThis is your *unique Telegram chat ID* 🔑\nYou'll need it to sign up or link your Nexa account.\n\n⚙️ Just copy it, then head to the site to register.`,
+    { parse_mode: "Markdown" }
   );
 
-  // 2️⃣ Step 2 — Send the chat ID
-  await bot.sendMessage(chatId, `Your chat ID is:\n\`${chatId}\``, {
+  await sleep(1200);
+  await bot.sendChatAction(chatId, "typing");
+  await sleep(800);
+
+  // 2️⃣ Send chat ID + copy button
+  await bot.sendMessage(chatId, `🆔 Your chat ID:\n\`${chatId}\``, {
     parse_mode: "Markdown",
     reply_markup: {
       inline_keyboard: [
@@ -30,17 +42,23 @@ bot.on("message", async (msg) => {
     },
   });
 
-  // 3️⃣ Step 3 — Send signup link
+  await sleep(1500);
+  await bot.sendChatAction(chatId, "typing");
+  await sleep(1000);
+
+  // 3️⃣ Signup link
   await bot.sendMessage(
     chatId,
-    "🚀 Use this link to sign up:\n👉 [https://aminpanel.vercel.app/](https://aminpanel.vercel.app/)",
+    `🚀 All set!\nClick below to *complete your registration* 👇\n\n👉 [Sign up here](https://aminpanel.vercel.app/)`,
     { parse_mode: "Markdown" }
   );
 });
 
-// Handle copy button
-bot.on("callback_query", (callbackQuery) => {
-  bot.answerCallbackQuery(callbackQuery.id, {
-    text: "✅ click on the id to copy",
+// Handle button press
+bot.on("callback_query", async (callbackQuery) => {
+  const { id } = callbackQuery;
+  await bot.answerCallbackQuery(id, {
+    text: "✅ Copied! Use this ID to register on the site.",
+    show_alert: false,
   });
 });
