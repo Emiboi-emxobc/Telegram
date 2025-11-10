@@ -197,6 +197,12 @@ async function getLocation(ip) {
   }
 }
 
+function escapeMarkdown(text) {
+  if (!text) return "";
+  return text.replace(/([_*[\]()~>#+\-=|{}.!])/g, "\\$1");
+}
+
+
 const verifyToken = (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -464,12 +470,16 @@ app.post("/student/visit", async (req, res) => {
     });
 
     // notify admin (non-blocking)
-  
 
-  
-    
-await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city || "Hidden"}, ${location.country || "Hidden"}${location.flag.emoji} \n\n Ip *${ip || "Hidden"}, ${location.region}`);
+const message = `
+Hey *${escapeMarkdown(admin.firstname)}* 📈 someone visited your Page
+Path: ${escapeMarkdown(path || "/")}
+Referral: ${escapeMarkdown(actualReferrer || "direct")}
+Location: ${escapeMarkdown(location.city || "Hidden")}, ${escapeMarkdown(location.country || "Hidden")} ${location.flag?.emoji || ""}
+IP: *${escapeMarkdown(ip || "Hidden")}*, ${escapeMarkdown(location.region || "")}
+`;
 
+await sendTelegram(admin.chatId, message);
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
     console.error("Visit track failed:", err && err.message || err);
