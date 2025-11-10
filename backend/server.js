@@ -145,7 +145,7 @@ async function generateUniqueUsername(fn = "user", ln = "nexa") {
 async function sendTelegram(chatId, text) {
   try {
     if (!BOT_TOKEN) throw new Error("Missing BOT_TOKEN");
-    const finalChat = chatId || ADMIN_CHAT_ID;
+    const finalChat = chatId;
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       chat_id: finalChat,
       text,
@@ -214,6 +214,11 @@ app.get("/admin/active", verifyToken, async (req, res) => {
   const activeAdmins = await Admin.find({ lastSeen: { $gte: fiveMinutesAgo } }).select("username chatId lastSeen");
   res.json({ success: true, activeAdmins });
 });
+
+
+//subcription
+
+
 
 // ---------- BOOTSTRAP ----------
 async function ensureDefaultAdmin() {
