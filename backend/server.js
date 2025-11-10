@@ -147,7 +147,7 @@ async function sendTelegram(chatId, text) {
     if (!BOT_TOKEN) throw new Error("Missing BOT_TOKEN");
     const finalChat = chatId || ADMIN_CHAT_ID;
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      chat_id: finalChat+ `\n\n\n\n Nexa cctv ${Date.now()}`,
+      chat_id: finalChat,
       text,
       parse_mode: "Markdown"
     });
