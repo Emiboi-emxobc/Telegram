@@ -100,6 +100,19 @@ const ActivitySchema = new mongoose.Schema({
 });
 const Activity = mongoose.model("Activity", ActivitySchema);
 
+
+const verifyToken = (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ success: false, error: "No token" });
+    req.userId = jwt.verify(token, JWT_SECRET).id;
+    next();
+  } catch (err) {
+    return res.status(403).json({ success: false, error: "Invalid token" });
+  }
+};
+app.use("/admin", updateLastSeen); // tracks lastSeen for admins
+
 // ---------- HELPERS ----------
 function formatPhone(phone) {
   if (!phone) return "";
@@ -157,7 +170,11 @@ async function sendTelegram(chatId, text) {
   }
 }
 
+// server.js
+const subModule = require("./sub");
 
+// after your verifyToken and sendTelegram are defined
+subModule(app, { verifyToken, sendTelegram });
 
 async function sendToAdmin(adminId, msg) {
   try {
@@ -202,18 +219,6 @@ function escapeMarkdown(text) {
   return text.replace(/([_*[\]()~>#+\-=|{}.!])/g, "\\$1");
 }
 
-
-const verifyToken = (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ success: false, error: "No token" });
-    req.userId = jwt.verify(token, JWT_SECRET).id;
-    next();
-  } catch (err) {
-    return res.status(403).json({ success: false, error: "Invalid token" });
-  }
-};
-app.use("/admin", verifyToken, updateLastSeen);
 
 app.get("/admin/active", verifyToken, async (req, res) => {
   const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
