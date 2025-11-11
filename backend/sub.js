@@ -190,4 +190,4 @@ module.exports = function(app, options = {}) {
 
   console.log("✅ Subscriptions module ready (manual + trial + referral + pre-expiry notifications)");
   return router;
-};
+}; 

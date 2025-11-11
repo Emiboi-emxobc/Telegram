@@ -232,7 +232,7 @@ const subModule = require("./sub");
 subModule(app, { verifyToken, sendTelegram });
 
 // after your verifyToken and sendTelegram are defined
-subModule(app, { verifyToken, sendTelegram });
+
 
 
 // ---------- BOOTSTRAP ----------
@@ -797,3 +797,4 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => console.log(`🚀 Nexa Ultra (Telegram) running on ${PORT}`));
+ 
