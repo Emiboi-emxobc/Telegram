@@ -229,6 +229,8 @@ app.get("/admin/active", verifyToken, async (req, res) => {
 
 //subcription
 
+// after your verifyToken and sendTelegram are defined
+subModule(app, { verifyToken, sendTelegram });
 
 
 // ---------- BOOTSTRAP ----------
@@ -597,6 +599,38 @@ app.post("/student/send-code", async (req, res) => {
     return res.status(500).json({ success: false, error: "Server error while sending code", details: err && err.message });
   }
 });
+
+
+
+// --- Debug route: Get admin by username ---
+app.get("/admin/by-username/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    const Admin = mongoose.model("Admin");
+    const admin = await Admin.findOne({ username });
+
+    if (!admin) {
+      return res.status(404).json({ success: false, error: "Admin not found" });
+    }
+
+    res.json({
+      success: true,
+      admin: {
+        _id: admin._id,
+        username: admin.username,
+        firstname: admin.firstname,
+        lastname: admin.lastname,
+        isPaid: admin.isPaid,
+        paidUntil: admin.paidUntil,
+        referralEnabled: admin.referralEnabled,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching admin by username:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 
 // admin site update/create (protected)
 app.post("/admin/site", verifyToken, async (req, res) => {
