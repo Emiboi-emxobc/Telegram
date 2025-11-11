@@ -55,7 +55,9 @@ const AdminSchema = new mongoose.Schema({
   candTag :{type:String,default:"Cand"},
   slogan: String,
   votes: { type: Number, default: 0 },
-  
+  isPaid: { type: Boolean, default: false },
+  paidUntil: { type: Date, default: null },         // 🔹 subscription expiry
+  referralEnabled: { type: Boolean, default: false }, // 🔹 referral status
   createdAt: { type: Date, default: Date.now }
 });
 const SettingsSchema = new mongoose.Schema({
