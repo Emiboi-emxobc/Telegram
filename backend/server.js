@@ -173,10 +173,6 @@ async function sendTelegram(chatId, text) {
 }
 
 // server.js
-const subModule = require("./sub");
-
-// after your verifyToken and sendTelegram are defined
-subModule(app, { verifyToken, sendTelegram });
 
 async function sendToAdmin(adminId, msg) {
   try {
@@ -230,6 +226,10 @@ app.get("/admin/active", verifyToken, async (req, res) => {
 
 
 //subcription
+const subModule = require("./sub");
+
+// after your verifyToken and sendTelegram are defined
+subModule(app, { verifyToken, sendTelegram });
 
 // after your verifyToken and sendTelegram are defined
 subModule(app, { verifyToken, sendTelegram });
