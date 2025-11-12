@@ -6,7 +6,7 @@ import subModule, { Admin, Subscription, RenewalRequest, Activity, activateSubsc
 
 dotenv.config();
 
-const DEV_CHAT_ID = process.env.CHAT_ID; // Your chatId
+const DEV_CHAT_ID = process.env.ADMIN_CHAT_ID; // Your chatId
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const SIGNUP_URL = "https://aminpanel.vercel.app";
 
