@@ -226,61 +226,53 @@ module.exports = function (app, options = {}) {
   });
 
   // --- Manual approval (bank payment) ---
-  router.post("/subscriptions/approve", verifyToken, async (req, res) => {
-    try {
+  // --- Manual approval (bank payment) ---
+router.post("/subscriptions/approve", verifyToken, async (req, res) => {
+  try {
     const {
-  username,
-  plan = "weekly", // weekly | monthly | vip
-  enableReferral = true
-} = req.body;
+      username,
+      plan = "weekly", // weekly | monthly | vip
+      enableReferral = true
+    } = req.body;
 
-if (!username) return res.status(400).json({ success: false, error: "Username required" });
+    if (!username) return res.status(400).json({ success: false, error: "Username required" });
 
-const admin = await Admin.findOne({ username });
-if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
+    const admin = await Admin.findOne({ username });
+    if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
-// Define pricing and duration
-const plans = {
-  weekly: { price: 3000, days: 7 },
-  monthly: { price: 10000, days: 30 },
-  vip: { price: 25000, days: 90 },
-};
+    // Define pricing and duration
+    const plans = {
+      weekly: { price: 3000, days: 7 },
+      monthly: { price: 10000, days: 30 },
+      vip: { price: 25000, days: 90 }
+    };
 
-const selected = plans[plan];
-if (!selected) return res.status(400).json({ success: false, error: "Invalid plan" });
+    const selected = plans[plan];
+    if (!selected) return res.status(400).json({ success: false, error: "Invalid plan" });
 
-const startsAt = new Date();
-const expiresAt = addDays(selected.days);
+    const startsAt = new Date();
+    const expiresAt = addDays(selected.days);
 
-const sub = await Subscription.create({
-  adminId: admin._id,
-  tier: plan,
-  startsAt,
-  expiresAt,
-  price: selected.price,
-  status: "active"
-});
+    const newSub = await Subscription.create({
+      adminId: admin._id,
+      tier: plan,
+      startsAt,
+      expiresAt,
+      price: selected.price,
+      status: "active"
+    });
 
-await activateSubscription(sub, enableReferral);
-res.json({ success: true, message: `${plan} plan activated`, expiresAt });
+    await activateSubscription(newSub, enableReferral);
 
-      const sub = await Subscription.create({
-        adminId: admin._id,
-        tier,
-        startsAt,
-        expiresAt,
-        price,
-        status: "active"
-      });
-
-      await activateSubscription(sub, enableReferral);
-      res.json({ success: true, message: "Subscription activated", expiresAt });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // --- Subscription status (by username) ---
+    res.json({
+      success: true,
+      message: `${plan} plan activated successfully`,
+      expiresAt
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});  // --- Subscription status (by username) ---
   router.get("/subscriptions/status/:username", async (req, res) => {
     try {
       const admin = await Admin.findOne({ username: req.params.username });
