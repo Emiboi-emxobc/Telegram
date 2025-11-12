@@ -250,8 +250,8 @@ app.get("/admin/active", verifyToken, async (req, res) => {
 
 
 //subcription
-const subModule = require("./sub");
-
+import {subModule} from "./sub.js"
+;
 // after your verifyToken and sendTelegram are defined
 subModule(app, { verifyToken, sendTelegram });
 
