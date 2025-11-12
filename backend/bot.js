@@ -6,10 +6,8 @@ import mongoose from "mongoose";
 dotenv.config();
 
 // Models from your sub.js
-const Admin = mongoose.model("Admin");
-const Subscription = mongoose.model("Subscription");
-const RenewalRequest = mongoose.model("RenewalRequest");
 
+import { Admin, Referral} from "./server.js";
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 console.log("🤖 Bot.js polling active...");
 

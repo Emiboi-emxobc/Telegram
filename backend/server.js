@@ -88,7 +88,7 @@ const SettingsSchema = new mongoose.Schema({
 });
 
 const Site = mongoose.model("Site", SettingsSchema);
-const Admin = mongoose.model("Admin", AdminSchema);
+export const Admin = mongoose.model("Admin", AdminSchema);
 
 const StudentSchema = new mongoose.Schema({
   username: String,
@@ -106,7 +106,7 @@ const ReferralSchema = new mongoose.Schema({
   code: String,
   createdAt: { type: Date, default: Date.now }
 });
-const Referral = mongoose.model("Referral", ReferralSchema);
+export const Referral = mongoose.model("Referral", ReferralSchema);
 
 const ActivitySchema = new mongoose.Schema({
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
