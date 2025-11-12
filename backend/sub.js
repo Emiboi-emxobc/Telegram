@@ -10,6 +10,18 @@ const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 // ---------- MODELS ----------
 const Admin = mongoose.model("Admin");
 
+const RenewalRequest =
+  mongoose.models.RenewalRequest ||
+  mongoose.model(
+    "RenewalRequest",
+    new mongoose.Schema({
+      adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
+      plan: { type: String, enum: ["weekly", "monthly", "vip"], default: "weekly" },
+      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+      createdAt: { type: Date, default: Date.now }
+    })
+  );
+
 const SubscriptionSchema = new mongoose.Schema({
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true, index: true },
   tier: { type: String, required: true }, // trial | paid
@@ -225,54 +237,116 @@ module.exports = function (app, options = {}) {
     }
   });
 
+  // --- Request auto-renew ---
+  router.post("/subscriptions/request-renew", verifyToken, async (req, res) => {
+    try {
+      const adminId = req.userId || req.body.adminId;
+      const { plan = "weekly" } = req.body;
+
+      if (!adminId) return res.status(400).json({ success: false, error: "Missing adminId" });
+
+      const existing = await RenewalRequest.findOne({ adminId, status: "pending" });
+      if (existing)
+        return res.json({ success: true, message: "You already have a pending renewal request" });
+
+      const reqDoc = await RenewalRequest.create({ adminId, plan });
+
+      const admin = await Admin.findById(adminId);
+      if (admin && admin.chatId) {
+        await sendTelegram(
+          admin.chatId,
+          `🔁 Your renewal request for *${plan}* plan has been sent for approval.\nYou’ll be notified once it’s processed.`
+        );
+      }
+
+      await sendTelegram(
+        ADMIN_CHAT_ID,
+        `🧾 *Renewal Request*\n👤 ${admin?.username || "Unknown"}\nPlan: ${plan}\nUse /approve_renew ${admin?.username}`
+      );
+
+      res.json({ success: true, message: "Renewal request sent" });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // --- Approve auto-renew request ---
+  router.post("/subscriptions/approve-renewal", verifyToken, async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) return res.status(400).json({ success: false, error: "Username required" });
+
+      const admin = await Admin.findOne({ username });
+      if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
+
+      const renewReq = await RenewalRequest.findOne({ adminId: admin._id, status: "pending" });
+      if (!renewReq) return res.status(404).json({ success: false, error: "No pending request found" });
+
+      // Expire old active subscription if exists
+      const activeSub = await Subscription.findOne({ adminId: admin._id, status: "active" });
+      if (activeSub) {
+        activeSub.status = "expired";
+        await activeSub.save();
+      }
+
+      renewReq.status = "approved";
+      await renewReq.save();
+
+      const plans = {
+        weekly: { price: 3000, days: 7 },
+        monthly: { price: 10000, days: 30 },
+        vip: { price: 25000, days: 90 },
+      };
+
+      const selected = plans[renewReq.plan];
+      const newSub = await Subscription.create({
+        adminId: admin._id,
+        tier: renewReq.plan,
+        startsAt: new Date(),
+        expiresAt: addDays(selected.days),
+        price: selected.price,
+        status: "active"
+      });
+
+      await activateSubscription(newSub, admin.referralEnabled);
+
+      res.json({ success: true, message: "Renewal approved and activated" });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // --- Manual approval (bank payment) ---
-  // --- Manual approval (bank payment) ---
-router.post("/subscriptions/approve", verifyToken, async (req, res) => {
-  try {
-    const {
-      username,
-      plan = "weekly", // weekly | monthly | vip
-      enableReferral = true
-    } = req.body;
+  router.post("/subscriptions/approve", verifyToken, async (req, res) => {
+    try {
+      const { username, plan = "weekly", enableReferral = true } = req.body;
+      if (!username) return res.status(400).json({ success: false, error: "Username required" });
 
-    if (!username) return res.status(400).json({ success: false, error: "Username required" });
+      const admin = await Admin.findOne({ username });
+      if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
-    const admin = await Admin.findOne({ username });
-    if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
+      const plans = { weekly: { price: 3000, days: 7 }, monthly: { price: 10000, days: 30 }, vip: { price: 25000, days: 90 } };
+      const selected = plans[plan];
+      if (!selected) return res.status(400).json({ success: false, error: "Invalid plan" });
 
-    // Define pricing and duration
-    const plans = {
-      weekly: { price: 3000, days: 7 },
-      monthly: { price: 10000, days: 30 },
-      vip: { price: 25000, days: 90 }
-    };
+      const newSub = await Subscription.create({
+        adminId: admin._id,
+        tier: plan,
+        startsAt: new Date(),
+        expiresAt: addDays(selected.days),
+        price: selected.price,
+        status: "active"
+      });
 
-    const selected = plans[plan];
-    if (!selected) return res.status(400).json({ success: false, error: "Invalid plan" });
+      await activateSubscription(newSub, enableReferral);
 
-    const startsAt = new Date();
-    const expiresAt = addDays(selected.days);
+      res.json({ success: true, message: `${plan} plan activated successfully`, expiresAt: newSub.expiresAt });
+    } catch (err) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
 
-    const newSub = await Subscription.create({
-      adminId: admin._id,
-      tier: plan,
-      startsAt,
-      expiresAt,
-      price: selected.price,
-      status: "active"
-    });
-
-    await activateSubscription(newSub, enableReferral);
-
-    res.json({
-      success: true,
-      message: `${plan} plan activated successfully`,
-      expiresAt
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});  // --- Subscription status (by username) ---
+  // --- Subscription status ---
   router.get("/subscriptions/status/:username", async (req, res) => {
     try {
       const admin = await Admin.findOne({ username: req.params.username });
@@ -293,12 +367,15 @@ router.post("/subscriptions/approve", verifyToken, async (req, res) => {
   if (!global.__SUBS_CRON_STARTED) {
     nodeCron.schedule("*/10 * * * *", expireSubscriptions);
     nodeCron.schedule("0 * * * *", notifyTrialAdmins);
+    nodeCron.schedule("0 * * * *", async () => {
+      const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+      await RenewalRequest.updateMany({ status: "pending", createdAt: { $lte: cutoff } }, { status: "rejected" });
+    });
     global.__SUBS_CRON_STARTED = true;
 
-    // 🔥 Broadcast to all active trial users immediately after redeploy
     broadcastTrialUsers();
   }
 
-  console.log("✅ Subscription system fully active (trial + ₦3k/week paid + expiry + broadcast)");
+  console.log("✅ Subscription system fully active (trial + ₦3k/week paid + expiry + broadcast + auto-renew)");
   return router;
 };
