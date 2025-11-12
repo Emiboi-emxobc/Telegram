@@ -1,9 +1,8 @@
 // sub.js — Manual + Trial + Referral + Expiry Notification + Broadcast + ₦3,000/week pricing
-const mongoose = require("mongoose");
-const express = require("express");
-const nodeCron = require("node-cron");
-const axios = require("axios");
-
+import mongoose from "mongoose";
+import express from "express";
+import nodeCron from "node-cron";
+import axios from "axios";
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 

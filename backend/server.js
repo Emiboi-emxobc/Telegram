@@ -1,14 +1,15 @@
 // server.js — NEXA ULTRA (Telegram Integrated)
-require("dotenv").config();
-const express = require("express");
-const mongoose = require("mongoose");
-const cors = require("cors");
-const multer = require("multer");
-const jwt = require("jsonwebtoken");
-const axios = require("axios");
-const bcrypt = require("bcryptjs");
-const { v2: cloudinary } = require("cloudinary");
+import dotenv from "dotenv";
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import jwt from "jsonwebtoken";
+import bodyParser from "body-parser";
+import path from "path";
+import { fileURLToPath } from "url";
 
+// Load environment variables
+dotenv.config();
 const app = express();
 const allowedOrigins = [
   "https://aminpanel.vercel.app",
@@ -141,7 +142,7 @@ function formatPhone(phone) {
 
   return "234" + localPart;
 }
-require("./bot.js");
+import "./bot.js";
 async function updateLastSeen(req, res, next) {
   try {
     if (req.userId) {
