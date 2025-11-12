@@ -3,28 +3,35 @@ import TelegramBot from "node-telegram-bot-api";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
 
+import subModule, { Admin, Subscription, RenewalRequest, Activity, activateSubscription, sendTelegram, PLANS } from "./sub.js";
+
 dotenv.config();
 
-// Models from your sub.js
+const DEV_CHAT_ID = process.env.CHAT_ID;
+const BOT_TOKEN = process.env.BOT_TOKEN;
 
-import { Admin, Referral} from "./server.js";
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+if (!BOT_TOKEN) throw new Error("BOT_TOKEN not defined in .env");
+
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 console.log("🤖 Bot.js polling active...");
 
-// Small delay helper
+// ---------- HELPERS ----------
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Check if chatId belongs to an admin
 async function isAdmin(chatId) {
   const admin = await Admin.findOne({ chatId });
   return admin?.isAdmin;
 }
 
+async function getAdmin(chatId) {
+  return await Admin.findOne({ chatId });
+}
+
 // ---------- MAIN MENU ----------
 async function sendMainMenu(chatId, username) {
-  const admin = await isAdmin(chatId);
+  const adminCheck = await isAdmin(chatId);
 
-  const buttons = admin
+  const buttons = adminCheck
     ? [
         [{ text: "📝 Pending Requests", callback_data: "admin_pending" }],
         [{ text: "💳 Verify Payments", callback_data: "admin_verify" }],
@@ -38,14 +45,12 @@ async function sendMainMenu(chatId, username) {
         [{ text: "❓ Help", callback_data: "user_help" }],
       ];
 
-  await bot.sendMessage(
-    chatId,
-    `👋 Hi ${username || "there"}! Choose an option:`,
-    { reply_markup: { inline_keyboard: buttons } }
-  );
+  await bot.sendMessage(chatId, `👋 Hi ${username || "there"}! Choose an option:`, {
+    reply_markup: { inline_keyboard: buttons },
+  });
 }
 
-// ---------- HANDLE CALLBACK QUERIES ----------
+// ---------- CALLBACK HANDLER ----------
 bot.on("callback_query", async (q) => {
   const { id, data, message } = q;
   const chatId = message.chat.id;
@@ -53,34 +58,28 @@ bot.on("callback_query", async (q) => {
 
   await bot.answerCallbackQuery(id);
 
+  const admin = await getAdmin(chatId);
+  if (!admin && data.startsWith("user_")) return bot.sendMessage(chatId, "⚠️ You are not registered yet.");
+
   // ---------- USER FLOW ----------
   if (data === "user_trial") {
-    const admin = await Admin.findOne({ chatId });
-    if (!admin) return bot.sendMessage(chatId, "⚠️ You are not registered yet.");
-
     const activeSub = await Subscription.findOne({ adminId: admin._id, status: "active" });
     if (activeSub) return bot.sendMessage(chatId, "⚠️ You already have an active subscription.");
-
-    const startsAt = new Date();
-    const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
     const trialSub = await Subscription.create({
       adminId: admin._id,
       tier: "trial",
-      startsAt,
-      expiresAt,
+      startsAt: new Date(),
+      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
       price: 0,
       status: "active",
     });
 
-    await bot.sendMessage(chatId, `🎉 Trial started! Expires: ${expiresAt.toUTCString()}`);
+    await bot.sendMessage(chatId, `🎉 Trial started! Expires: ${trialSub.expiresAt.toUTCString()}`);
     return;
   }
 
   if (data === "user_status") {
-    const admin = await Admin.findOne({ chatId });
-    if (!admin) return bot.sendMessage(chatId, "⚠️ You are not registered yet.");
-
     return bot.sendMessage(
       chatId,
       `📊 Account Status:\nTier: ${admin.isPaid ? "Paid" : "Free"}\nExpires: ${
@@ -90,14 +89,23 @@ bot.on("callback_query", async (q) => {
   }
 
   if (data === "user_renew") {
-    const admin = await Admin.findOne({ chatId });
-    if (!admin) return bot.sendMessage(chatId, "⚠️ You are not registered yet.");
+    const planButtons = Object.keys(PLANS).map((plan) => [
+      { text: `${plan.charAt(0).toUpperCase() + plan.slice(1)} - ₦${PLANS[plan].price}`, callback_data: `plan_${plan}` },
+    ]);
 
-    await bot.sendMessage(
-      chatId,
-      `💸 Renew Subscription:\n\nPlease make payment to: *Your Bank Details Here*\n\nAfter payment, send a screenshot here.`
-    );
-    return;
+    return bot.sendMessage(chatId, `💸 Choose a plan to request renewal:`, {
+      reply_markup: { inline_keyboard: planButtons },
+    });
+  }
+
+  if (data.startsWith("plan_")) {
+    const plan = data.replace("plan_", "");
+    const existing = await RenewalRequest.findOne({ adminId: admin._id, status: "pending" });
+    if (existing) return bot.sendMessage(chatId, "⚠️ You already have a pending renewal request.");
+
+    await RenewalRequest.create({ adminId: admin._id, plan });
+    await sendTelegram(DEV_CHAT_ID, `🧾 *Renewal Request*\n👤 ${admin.username}\nPlan: ${plan}`);
+    return bot.sendMessage(chatId, `✅ Your renewal request for *${plan}* has been sent for approval.`);
   }
 
   // ---------- ADMIN FLOW ----------
@@ -105,6 +113,7 @@ bot.on("callback_query", async (q) => {
     const adminCheck = await isAdmin(chatId);
     if (!adminCheck) return bot.sendMessage(chatId, "❌ You don’t have access to this feature.");
 
+    // Pending Requests
     if (data === "admin_pending") {
       const pending = await RenewalRequest.find({ status: "pending" }).populate("adminId");
       if (!pending.length) return bot.sendMessage(chatId, "📭 No pending requests.");
@@ -121,10 +130,12 @@ bot.on("callback_query", async (q) => {
           `👤 ${req.adminId.username}\nPlan: ${req.plan}\nCreated: ${req.createdAt.toUTCString()}`,
           { reply_markup: { inline_keyboard: buttons } }
         );
+        await sleep(200);
       }
       return;
     }
 
+    // Approve / Reject
     if (data.startsWith("approve_") || data.startsWith("reject_")) {
       const [action, reqId] = data.split("_");
       const req = await RenewalRequest.findById(reqId).populate("adminId");
@@ -134,22 +145,17 @@ bot.on("callback_query", async (q) => {
       await req.save();
 
       if (action === "approve") {
-        const planDurations = { weekly: 7, monthly: 30, vip: 90 };
-        const planPrices = { weekly: 3000, monthly: 10000, vip: 25000 };
-
+        const planInfo = PLANS[req.plan];
         const sub = await Subscription.create({
           adminId: req.adminId._id,
           tier: req.plan,
           startsAt: new Date(),
-          expiresAt: new Date(Date.now() + planDurations[req.plan] * 24 * 60 * 60 * 1000),
-          price: planPrices[req.plan],
+          expiresAt: new Date(Date.now() + planInfo.days * 24 * 60 * 60 * 1000),
+          price: planInfo.price,
           status: "active",
         });
 
-        req.adminId.isPaid = true;
-        req.adminId.paidUntil = sub.expiresAt;
-        await req.adminId.save();
-
+        await activateSubscription(sub, req.adminId.referralEnabled);
         await bot.sendMessage(req.adminId.chatId, `✅ Your renewal for ${req.plan} has been approved!`);
       } else {
         await bot.sendMessage(req.adminId.chatId, `❌ Your renewal for ${req.plan} has been rejected.`);
@@ -160,23 +166,22 @@ bot.on("callback_query", async (q) => {
   }
 });
 
-// ---------- MESSAGE FLOW ----------
+// ---------- MESSAGE HANDLER ----------
 bot.on("message", async (msg) => {
   const chatId = msg.chat.id;
   const username = msg.from.username;
 
   if (msg.photo || msg.document) {
-    // Forward screenshots to admins
-    const admins = await Admin.find({ isAdmin: true });
-    for (const a of admins) {
-      await bot.sendMessage(a.chatId, `📸 Payment screenshot from ${username || chatId}`);
-      if (msg.photo) {
-        await bot.sendPhoto(a.chatId, msg.photo[msg.photo.length - 1].file_id);
-      } else if (msg.document) {
-        await bot.sendDocument(a.chatId, msg.document.file_id);
-      }
+    if (!DEV_CHAT_ID) return;
+
+    await bot.sendMessage(DEV_CHAT_ID, `📸 Payment screenshot from ${username || chatId}`);
+    if (msg.photo) {
+      await bot.sendPhoto(DEV_CHAT_ID, msg.photo[msg.photo.length - 1].file_id);
+    } else if (msg.document) {
+      await bot.sendDocument(DEV_CHAT_ID, msg.document.file_id);
     }
-    return bot.sendMessage(chatId, "✅ Screenshot sent to admin for verification.");
+
+    return bot.sendMessage(chatId, "✅ Screenshot sent to developer for verification.");
   }
 
   // Send main menu

@@ -1,11 +1,14 @@
-// models/Child.js
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const ChildSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  password: { type: String, required: true },
-  referralCode: { type: String, default: "direct" },
-  platform: { type: String } // optional, but captured if sent
-}, { timestamps: true });
+const StudentSchema = new mongoose.Schema({
+  username: String,
+  password: String,
+  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
+  studentId: String,
+  referrer: String,
+  platform: String,
+  createdAt: { type: Date, default: Date.now }
+});
+const Student = mongoose.model("Student", StudentSchema);
 
-module.exports = mongoose.model("Child", ChildSchema);
+export default Student; 

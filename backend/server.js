@@ -16,7 +16,6 @@ import { fileURLToPath } from "url";
 // Initialize dotenv
 dotenv.config();
 // Load environment variables
-dotenv.config();
 const app = express();
 const allowedOrigins = [
   "https://aminpanel.vercel.app",
@@ -64,66 +63,11 @@ cloudinary.config({
 const upload = multer({ storage: multer.memoryStorage() });
 
 // ---------- MODELS ----------
-const AdminSchema = new mongoose.Schema({
-  username: { type: String, unique: true, sparse: true },
-  firstname: String,
-  lastname: String,
-  phone: { type: String, unique: true, sparse: true },
-  password: String,
-  avatar: String,
-  referralCode: String,
-  chatId: String, // 🔹 replaced apikey with chatId
-  bio: String,
-  profTag :{type:String,default:"Basic"},
-  candTag :{type:String,default:"Cand"},
-  slogan: String,
-  votes: { type: Number, default: 0 },
-  isPaid: { type: Boolean, default: false },
-  paidUntil: { type: Date, default: null },         // 🔹 subscription expiry
-  referralEnabled: { type: Boolean, default: false }, // 🔹 referral status
-  createdAt: { type: Date, default: Date.now }
-});
-const SettingsSchema = new mongoose.Schema({
-  title: { type: String, default: "The People's pick" },
-  subTitle: { type: String, default: "Vote us 2025🎉🎊🎉🎊"
-  },
-  lastSeen:{type:String,default:Date.now()}, 
-  description: {
-    type: String,
-    default: "I need your support! Please take a moment to cast your vote and help me reach new heights in this competition. <strong>Your vote</strong> could be the difference-maker, propelling me toward victory"
-  },
-  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" }
-});
-
-const Site = mongoose.model("Site", SettingsSchema);
-export const Admin = mongoose.model("Admin", AdminSchema);
-
-const StudentSchema = new mongoose.Schema({
-  username: String,
-  password: String,
-  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
-  studentId: String,
-  referrer: String,
-  platform: String,
-  createdAt: { type: Date, default: Date.now }
-});
-const Student = mongoose.model("Student", StudentSchema);
-
-const ReferralSchema = new mongoose.Schema({
-  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
-  code: String,
-  createdAt: { type: Date, default: Date.now }
-});
-export const Referral = mongoose.model("Referral", ReferralSchema);
-
-const ActivitySchema = new mongoose.Schema({
-  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
-  studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student" },
-  action: String,
-  details: { type: mongoose.Schema.Types.Mixed, default: {} },
-  createdAt: { type: Date, default: Date.now }
-});
-const Activity = mongoose.model("Activity", ActivitySchema);
+import Admin from "./models/Admin.js"; 
+import Site from './models/Site.js';
+import Student from './models/Child.js';
+import Referral from "./models/Referral.js";
+import Activity from "./models/Activity.js"
 
 
 const verifyToken = (req, res, next) => {

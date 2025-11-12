@@ -1,26 +1,32 @@
-// sub.js — Manual + Trial + Referral + Expiry Notification + Broadcast + ₦3,000/week pricing
+// sub.js — Subscription Module: Trial + Renewal + Broadcast + ₦3,000/week pricing
 import mongoose from "mongoose";
 import express from "express";
 import nodeCron from "node-cron";
 import axios from "axios";
 
+// ---------- CONFIG ----------
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 
-// ---------- MODELS ----------
-const Admin = mongoose.model("Admin");
+// ---------- PLAN DATA ----------
+export const PLANS = {
+  weekly: { price: 3000, days: 7 },
+  monthly: { price: 10000, days: 30 },
+  vip: { price: 25000, days: 90 },
+};
 
-const RenewalRequest =
-  mongoose.models.RenewalRequest ||
-  mongoose.model(
-    "RenewalRequest",
-    new mongoose.Schema({
-      adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
-      plan: { type: String, enum: ["weekly", "monthly", "vip"], default: "weekly" },
-      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
-      createdAt: { type: Date, default: Date.now },
-    })
-  );
+// ---------- MODELS ----------
+import Admin from './models/Admin.js';
+import Activity from './models/Activity.js';
+
+const RenewalRequestSchema = new mongoose.Schema({
+  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
+  plan: { type: String, enum: ["weekly", "monthly", "vip"], default: "weekly" },
+  status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+  createdAt: { type: Date, default: Date.now },
+});
+
+const RenewalRequest = mongoose.models.RenewalRequest || mongoose.model("RenewalRequest", RenewalRequestSchema);
 
 const SubscriptionSchema = new mongoose.Schema({
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true, index: true },
@@ -33,20 +39,7 @@ const SubscriptionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
-const Subscription =
-  mongoose.models.Subscription || mongoose.model("Subscription", SubscriptionSchema);
-
-const Activity =
-  mongoose.models.Activity ||
-  mongoose.model(
-    "Activity",
-    new mongoose.Schema({
-      adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
-      action: String,
-      details: { type: mongoose.Schema.Types.Mixed, default: {} },
-      createdAt: { type: Date, default: Date.now },
-    })
-  );
+const Subscription = mongoose.models.Subscription || mongoose.model("Subscription", SubscriptionSchema);
 
 // ---------- TELEGRAM ----------
 async function sendTelegram(chatId, text) {
@@ -161,6 +154,8 @@ async function notifyTrialAdmins() {
       action: "trial_pre_expiry_reminder",
       details: { expiresAt: sub.expiresAt },
     });
+
+    await new Promise((r) => setTimeout(r, 200)); // small delay to avoid Telegram flood
   }
 }
 
@@ -182,6 +177,8 @@ async function broadcastTrialUsers() {
         admin.chatId,
         `💸 Heads up ${admin.username || "Admin"}!\nWe're moving into paid plans (₦3,000/week).\nYour trial expires: ${sub.expiresAt.toUTCString()}`
       );
+
+      await new Promise((r) => setTimeout(r, 200));
     }
 
     console.log(`📢 Broadcast sent to ${trialSubs.length} trial users`);
@@ -191,13 +188,13 @@ async function broadcastTrialUsers() {
 }
 
 // ---------- ROUTES ----------
-export default function (app, options = {}) {
+export default function subModule(app, options = {}) {
   const router = express.Router();
   const verifyToken = options.verifyToken || ((req, res, next) => next());
-  app.use("/", router);
+  app.use("/subscriptions", router);
 
   // --- Free 3-day trial ---
-  router.post("/subscriptions/trial", verifyToken, async (req, res) => {
+  router.post("/trial", verifyToken, async (req, res) => {
     try {
       const adminId = req.userId || req.body.adminId;
       if (!adminId) return res.status(400).json({ success: false, error: "Missing adminId" });
@@ -232,27 +229,19 @@ export default function (app, options = {}) {
   });
 
   // --- Request auto-renew ---
-  router.post("/subscriptions/request-renew", verifyToken, async (req, res) => {
+  router.post("/request-renew", verifyToken, async (req, res) => {
     try {
       const adminId = req.userId || req.body.adminId;
       const { plan = "weekly" } = req.body;
       if (!adminId) return res.status(400).json({ success: false, error: "Missing adminId" });
 
       const existing = await RenewalRequest.findOne({ adminId, status: "pending" });
-      if (existing)
-        return res.json({ success: true, message: "You already have a pending renewal request" });
+      if (existing) return res.json({ success: true, message: "You already have a pending renewal request" });
 
-      const reqDoc = await RenewalRequest.create({ adminId, plan });
-
+      await RenewalRequest.create({ adminId, plan });
       const admin = await Admin.findById(adminId);
-      if (admin?.chatId) {
-        await sendTelegram(admin.chatId, `🔁 Your renewal request for *${plan}* plan has been sent.`);
-      }
-
-      await sendTelegram(
-        ADMIN_CHAT_ID,
-        `🧾 *Renewal Request*\n👤 ${admin?.username || "Unknown"}\nPlan: ${plan}`
-      );
+      if (admin?.chatId) await sendTelegram(admin.chatId, `🔁 Your renewal request for *${plan}* plan has been sent.`);
+      await sendTelegram(ADMIN_CHAT_ID, `🧾 *Renewal Request*\n👤 ${admin?.username || "Unknown"}\nPlan: ${plan}`);
 
       res.json({ success: true, message: "Renewal request sent" });
     } catch (err) {
@@ -261,7 +250,7 @@ export default function (app, options = {}) {
   });
 
   // --- Approve auto-renew request ---
-  router.post("/subscriptions/approve-renewal", verifyToken, async (req, res) => {
+  router.post("/approve-renewal", verifyToken, async (req, res) => {
     try {
       const { username } = req.body;
       if (!username) return res.status(400).json({ success: false, error: "Username required" });
@@ -281,19 +270,13 @@ export default function (app, options = {}) {
       renewReq.status = "approved";
       await renewReq.save();
 
-      const plans = {
-        weekly: { price: 3000, days: 7 },
-        monthly: { price: 10000, days: 30 },
-        vip: { price: 25000, days: 90 },
-      };
-
-      const selected = plans[renewReq.plan];
+      const planInfo = PLANS[renewReq.plan];
       const newSub = await Subscription.create({
         adminId: admin._id,
         tier: renewReq.plan,
         startsAt: new Date(),
-        expiresAt: addDays(selected.days),
-        price: selected.price,
+        expiresAt: addDays(planInfo.days),
+        price: planInfo.price,
         status: "active",
       });
 
@@ -306,7 +289,7 @@ export default function (app, options = {}) {
   });
 
   // --- Manual approval ---
-  router.post("/subscriptions/approve", verifyToken, async (req, res) => {
+  router.post("/approve", verifyToken, async (req, res) => {
     try {
       const { username, plan = "weekly", enableReferral = true } = req.body;
       if (!username) return res.status(400).json({ success: false, error: "Username required" });
@@ -314,16 +297,15 @@ export default function (app, options = {}) {
       const admin = await Admin.findOne({ username });
       if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
-      const plans = { weekly: { price: 3000, days: 7 }, monthly: { price: 10000, days: 30 }, vip: { price: 25000, days: 90 } };
-      const selected = plans[plan];
-      if (!selected) return res.status(400).json({ success: false, error: "Invalid plan" });
+      const planInfo = PLANS[plan];
+      if (!planInfo) return res.status(400).json({ success: false, error: "Invalid plan" });
 
       const newSub = await Subscription.create({
         adminId: admin._id,
         tier: plan,
         startsAt: new Date(),
-        expiresAt: addDays(selected.days),
-        price: selected.price,
+        expiresAt: addDays(planInfo.days),
+        price: planInfo.price,
         status: "active",
       });
 
@@ -336,7 +318,7 @@ export default function (app, options = {}) {
   });
 
   // --- Subscription status ---
-  router.get("/subscriptions/status/:username", async (req, res) => {
+  router.get("/status/:username", async (req, res) => {
     try {
       const admin = await Admin.findOne({ username: req.params.username });
       if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
@@ -366,5 +348,8 @@ export default function (app, options = {}) {
   }
 
   console.log("✅ Subscription system fully active");
-  return router;
+
+  return { router, models: { Admin, Subscription, RenewalRequest, Activity }, activateSubscription, sendTelegram };
 }
+
+export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, sendTelegram };
