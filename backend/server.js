@@ -253,7 +253,7 @@ app.get("/admin/active", verifyToken, async (req, res) => {
 import subRoutes from "./sub.js";
 ;
 // after your verifyToken and sendTelegram are defined
-subModule(app, { verifyToken, sendTelegram });
+subRoutes(app, { verifyToken, sendTelegram });
 
 // after your verifyToken and sendTelegram are defined
 
