@@ -820,5 +820,5 @@ app.use((err, req, res, next) => {
   res.status(500).json({ success: false, error: "Internal server error" });
 });
 
-app.listen(PORT, () => console.log(`🚀 Nexa Ultra (Telegram) running on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Nexa Ultra (Telegram) running on ${PORT} (fixed)`));
  
