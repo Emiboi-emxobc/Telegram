@@ -3,11 +3,18 @@ import dotenv from "dotenv";
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import multer from "multer";
 import jwt from "jsonwebtoken";
+import axios from "axios";
+import bcrypt from "bcryptjs";
+import { v2 as cloudinary } from "cloudinary";
+import nodeCron from "node-cron";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
- 
+
+// Initialize dotenv
+dotenv.config();
 // Load environment variables
 dotenv.config();
 const app = express();
