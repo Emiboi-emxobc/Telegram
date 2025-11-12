@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const axios = require("axios");
 const bcrypt = require("bcryptjs");
 const { v2: cloudinary } = require("cloudinary");
-require("./bot.js");
+
 const app = express();
 const allowedOrigins = [
   "https://aminpanel.vercel.app",
@@ -141,6 +141,7 @@ function formatPhone(phone) {
 
   return "234" + localPart;
 }
+require("./bot.js");
 async function updateLastSeen(req, res, next) {
   try {
     if (req.userId) {
