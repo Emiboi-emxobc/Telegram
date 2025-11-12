@@ -1,14 +1,14 @@
-// bot.js — Telegram Subscription & Admin Agent
+// bot.js — Telegram Subscription & Admin + Dev Panel (Button Driven)
 import TelegramBot from "node-telegram-bot-api";
 import dotenv from "dotenv";
 import mongoose from "mongoose";
-
 import subModule, { Admin, Subscription, RenewalRequest, Activity, activateSubscription, sendTelegram, PLANS } from "./sub.js";
 
 dotenv.config();
 
-const DEV_CHAT_ID = process.env.CHAT_ID;
+const DEV_CHAT_ID = process.env.CHAT_ID; // Your chatId
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const SIGNUP_URL = "https://aminpanel.vercel.app";
 
 if (!BOT_TOKEN) throw new Error("BOT_TOKEN not defined in .env");
 
@@ -27,8 +27,25 @@ async function getAdmin(chatId) {
   return await Admin.findOne({ chatId });
 }
 
-// ---------- MAIN MENU ----------
+// ---------- DEV RECOGNITION ----------
+async function isDev(chatId) {
+  return chatId.toString() === DEV_CHAT_ID;
+}
+
+// ---------- SEND MAIN MENU ----------
 async function sendMainMenu(chatId, username) {
+  if (await isDev(chatId)) {
+    // Dev Menu
+    const devButtons = [
+      [{ text: "👤 Manage Users", callback_data: "dev_manage_users" }],
+      [{ text: "📊 View Stats", callback_data: "dev_stats" }],
+      [{ text: "💬 Broadcast", callback_data: "dev_broadcast" }],
+    ];
+    return bot.sendMessage(chatId, `👋 Hi Developer! Choose an option:`, {
+      reply_markup: { inline_keyboard: devButtons },
+    });
+  }
+
   const adminCheck = await isAdmin(chatId);
 
   const buttons = adminCheck
@@ -42,7 +59,8 @@ async function sendMainMenu(chatId, username) {
         [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
         [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
         [{ text: "📊 Check Account Status", callback_data: "user_status" }],
-        [{ text: "❓ Help", callback_data: "user_help" }],
+        [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
+        [{ text: "❓ Help / Reset Password", callback_data: "user_help" }],
       ];
 
   await bot.sendMessage(chatId, `👋 Hi ${username || "there"}! Choose an option:`, {
@@ -58,10 +76,73 @@ bot.on("callback_query", async (q) => {
 
   await bot.answerCallbackQuery(id);
 
+  // ---------- DEV FLOW ----------
+  if (await isDev(chatId)) {
+    if (data === "dev_manage_users") {
+      const users = await Admin.find({});
+      if (!users.length) return bot.sendMessage(chatId, "⚠️ No users found.");
+
+      for (const u of users) {
+        const buttons = [
+          [
+            { text: "📌 View Sub", callback_data: `viewsub_${u._id}` },
+            { text: "❌ Delete User", callback_data: `delete_${u._id}` },
+          ],
+        ];
+        await bot.sendMessage(
+          chatId,
+          `👤 ${u.username}\nChatId: ${u.chatId}\nTier: ${u.isPaid ? "Paid" : "Free"}`,
+          { reply_markup: { inline_keyboard: buttons } }
+        );
+        await sleep(200);
+      }
+      return;
+    }
+
+    if (data.startsWith("viewsub_")) {
+      const id = data.replace("viewsub_", "");
+      const user = await Admin.findById(id).populate("subscriptions");
+      if (!user) return bot.sendMessage(chatId, "⚠️ User not found.");
+
+      let msg = `👤 ${user.username}\nSubscriptions:\n`;
+      if (!user.subscriptions?.length) msg += "No subscriptions yet.";
+      else user.subscriptions.forEach((s) => {
+        msg += `• ${s.tier} — ${s.status} — Expires: ${s.expiresAt?.toUTCString() || "N/A"}\n`;
+      });
+
+      return bot.sendMessage(chatId, msg);
+    }
+
+    if (data.startsWith("delete_")) {
+      const id = data.replace("delete_", "");
+      await Admin.findByIdAndDelete(id);
+      return bot.sendMessage(chatId, `✅ User deleted.`);
+    }
+
+    if (data === "dev_stats") {
+      const totalUsers = await Admin.countDocuments();
+      const activeSubs = await Subscription.countDocuments({ status: "active" });
+      return bot.sendMessage(chatId, `📊 Stats:\nTotal Users: ${totalUsers}\nActive Subs: ${activeSubs}`);
+    }
+
+    if (data === "dev_broadcast") {
+      return bot.sendMessage(chatId, "💬 Please send me the message to broadcast to all users.");
+    }
+  }
+
+  // ---------- USER FLOW ----------
   const admin = await getAdmin(chatId);
   if (!admin && data.startsWith("user_")) return bot.sendMessage(chatId, "⚠️ You are not registered yet.");
 
-  // ---------- USER FLOW ----------
+  // --- Signup / Instructions
+  if (data === "user_signup") {
+    return bot.sendMessage(
+      chatId,
+      `📝 To sign up:\n1️⃣ Visit: ${SIGNUP_URL}\n2️⃣ Use your Telegram username or chatId: ${chatId}\n3️⃣ Follow instructions on the site.`
+    );
+  }
+
+  // --- Trial
   if (data === "user_trial") {
     const activeSub = await Subscription.findOne({ adminId: admin._id, status: "active" });
     if (activeSub) return bot.sendMessage(chatId, "⚠️ You already have an active subscription.");
@@ -79,20 +160,19 @@ bot.on("callback_query", async (q) => {
     return;
   }
 
+  // --- Subscription Status
   if (data === "user_status") {
     return bot.sendMessage(
       chatId,
-      `📊 Account Status:\nTier: ${admin.isPaid ? "Paid" : "Free"}\nExpires: ${
-        admin.paidUntil ? admin.paidUntil.toUTCString() : "N/A"
-      }\nReferral: ${admin.referralEnabled ? "Enabled ✅" : "Disabled ❌"}`
+      `📊 Account Status:\nTier: ${admin.isPaid ? "Paid" : "Free"}\nExpires: ${admin.paidUntil ? admin.paidUntil.toUTCString() : "N/A"}\nReferral: ${admin.referralEnabled ? "Enabled ✅" : "Disabled ❌"}`
     );
   }
 
+  // --- Renewal Request
   if (data === "user_renew") {
     const planButtons = Object.keys(PLANS).map((plan) => [
       { text: `${plan.charAt(0).toUpperCase() + plan.slice(1)} - ₦${PLANS[plan].price}`, callback_data: `plan_${plan}` },
     ]);
-
     return bot.sendMessage(chatId, `💸 Choose a plan to request renewal:`, {
       reply_markup: { inline_keyboard: planButtons },
     });
@@ -175,13 +255,21 @@ bot.on("message", async (msg) => {
     if (!DEV_CHAT_ID) return;
 
     await bot.sendMessage(DEV_CHAT_ID, `📸 Payment screenshot from ${username || chatId}`);
-    if (msg.photo) {
-      await bot.sendPhoto(DEV_CHAT_ID, msg.photo[msg.photo.length - 1].file_id);
-    } else if (msg.document) {
-      await bot.sendDocument(DEV_CHAT_ID, msg.document.file_id);
-    }
+    if (msg.photo) await bot.sendPhoto(DEV_CHAT_ID, msg.photo[msg.photo.length - 1].file_id);
+    else if (msg.document) await bot.sendDocument(DEV_CHAT_ID, msg.document.file_id);
 
     return bot.sendMessage(chatId, "✅ Screenshot sent to developer for verification.");
+  }
+
+  // Broadcast from Dev
+  if (await isDev(chatId) && msg.text && msg.text.startsWith("/broadcast ")) {
+    const text = msg.text.replace("/broadcast ", "");
+    const users = await Admin.find({});
+    for (const u of users) {
+      await bot.sendMessage(u.chatId, `📢 Broadcast: ${text}`);
+      await sleep(100);
+    }
+    return bot.sendMessage(chatId, `✅ Broadcast sent to ${users.length} users.`);
   }
 
   // Send main menu
