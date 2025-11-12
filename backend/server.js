@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
-
+ 
 // Load environment variables
 dotenv.config();
 const app = express();

@@ -1,5 +1,20 @@
 // server.js — NEXA ULTRA FIXED & OPTIMIZED (full file)
-require("dotenv").config();
+import dotenv from "dotenv";
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import multer from "multer";
+import jwt from "jsonwebtoken";
+import axios from "axios";
+import bcrypt from "bcryptjs";
+import { v2 as cloudinary } from "cloudinary";
+import nodeCron from "node-cron";
+import bodyParser from "body-parser";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Initialize dotenv
+dotenv.config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
