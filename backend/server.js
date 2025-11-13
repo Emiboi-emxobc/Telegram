@@ -19,7 +19,8 @@ dotenv.config();
 const app = express();
 const allowedOrigins = [
   "https://aminpanel.vercel.app",
-  "https://cctv-ujg4.vercel.app"
+  "https://cctv-ujg4.vercel.app",
+  "http://localhost:7700"
 ];
 
 app.use(cors({
