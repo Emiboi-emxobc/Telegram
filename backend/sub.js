@@ -30,7 +30,7 @@ const RenewalRequest = mongoose.models.RenewalRequest || mongoose.model("Renewal
 
 const SubscriptionSchema = new mongoose.Schema({
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true, index: true },
-  tier: { type: String, required: true }, // trial | paid
+  tier: { type: String, required: true, default: "free" }, // trial | paid
   startsAt: { type: Date, default: Date.now },
   expiresAt: { type: Date, required: true },
   price: { type: Number, required: true },
@@ -61,6 +61,39 @@ const addDays = (days) => {
   now.setDate(now.getDate() + days);
   return now;
 };
+
+// ---------- AUTO-TRIAL FOR NEW ADMINS ----------
+async function ensureTrialForAdmin(adminId) {
+  if (!adminId) return;
+
+  const existingSub = await Subscription.findOne({ adminId });
+  if (existingSub) return existingSub; // already has one
+
+  const expiresAt = addDays(3);
+  const trialSub = await Subscription.create({
+    adminId,
+    tier: "trial",
+    startsAt: new Date(),
+    expiresAt,
+    price: 0,
+    status: "active",
+  });
+
+  const admin = await Admin.findById(adminId);
+  if (admin) {
+    admin.isPaid = true;
+    admin.paidUntil = expiresAt;
+    admin.referralEnabled = false;
+    await admin.save();
+
+    await sendTelegram(
+      admin.chatId,
+      `🎉 Welcome ${admin.username || "Admin"}! Your free trial has started.\nExpires: ${expiresAt.toUTCString()}`
+    );
+  }
+
+  return trialSub;
+}
 
 // ---------- SUBSCRIPTION CORE ----------
 async function activateSubscription(sub, enableReferral = false) {
@@ -194,42 +227,65 @@ async function broadcastTrialUsers() {
   }
 }
 
+
+// ---------- AUTO-ACTIVATE TRIALS ON SERVER START ----------
+async function activateTrialsOnStart() {
+  try {
+    const admins = await Admin.find({});
+
+    for (const admin of admins) {
+      let trialSub = await Subscription.findOne({ adminId: admin._id, tier: "trial" });
+
+      if (!trialSub) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 3); // 3 days from now
+        trialSub = await Subscription.create({
+          adminId: admin._id,
+          tier: "trial",
+          startsAt: new Date(),
+          expiresAt,
+          price: 0,
+          status: "active",
+        });
+        console.log(`✅ Trial created for ${admin.username}`);
+      } else if (trialSub.status !== "active") {
+        trialSub.status = "active";
+        await trialSub.save();
+        console.log(`🔄 Trial re-activated for ${admin.username}`);
+      } else {
+        console.log(`⏩ Trial already active for ${admin.username}`);
+      }
+
+      // sync admin fields
+      admin.isPaid = true;
+      admin.paidUntil = trialSub.expiresAt;
+      admin.referralEnabled = false;
+      await admin.save();
+    }
+
+    console.log("✅ All existing admins synced with trial status");
+  } catch (err) {
+    console.error("Trial activation error:", err.message);
+  }
+}
+
+// Run on server start
+activateTrialsOnStart();
+
 // ---------- ROUTES ----------
 export default function subModule(app, options = {}) {
   const router = express.Router();
   const verifyToken = options.verifyToken || ((req, res, next) => next());
   app.use("/subscriptions", router);
 
-  // --- Free 3-day trial ---
+  // --- Free 3-day trial endpoint ---
   router.post("/trial", verifyToken, async (req, res) => {
     try {
       const adminId = req.userId || req.body.adminId;
       if (!adminId) return res.status(400).json({ success: false, error: "Missing adminId" });
 
-      const expiresAt = addDays(3);
-      const sub = await Subscription.create({
-        adminId,
-        tier: "trial",
-        startsAt: new Date(),
-        expiresAt,
-        price: 0,
-        status: "active",
-      });
-
-      const admin = await Admin.findById(adminId);
-      if (admin) {
-        admin.isPaid = true;
-        admin.paidUntil = expiresAt;
-        admin.referralEnabled = false;
-        await admin.save();
-
-        await sendTelegram(
-          admin.chatId,
-          `🎉 Welcome ${admin.username || "Admin"}! Your 3-day free trial starts now.\nExpires: ${expiresAt.toUTCString()}`
-        );
-      }
-
-      res.json({ success: true, subscriptionId: sub._id, expiresAt });
+      const sub = await ensureTrialForAdmin(adminId);
+      res.json({ success: true, subscriptionId: sub._id, expiresAt: sub.expiresAt });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
     }
@@ -357,7 +413,7 @@ export default function subModule(app, options = {}) {
 
   console.log("✅ Subscription system fully active");
 
-  return { router, models: { Admin, Subscription, RenewalRequest, Activity }, activateSubscription, sendTelegram };
+  return { router, models: { Admin, Subscription, RenewalRequest, Activity }, activateSubscription, ensureTrialForAdmin, sendTelegram };
 }
 
-export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, sendTelegram };
+export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, ensureTrialForAdmin, sendTelegram };

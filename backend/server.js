@@ -254,6 +254,7 @@ async function ensureDefaultAdmin() {
 app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend active (Telegram)" }));
 
 // 🧱 Register Admin (uses chatId)
+// 🧱 Register Admin (uses chatId) + Auto 3-day free trial
 app.post("/admin/register", async (req, res) => {
   try {
     let { firstname, lastname, phone, password, chatId, slogan, bio } = req.body;
@@ -283,18 +284,38 @@ app.post("/admin/register", async (req, res) => {
     });
     await Referral.create({ adminId: admin._id, code: refCode });
 
+    // --- Auto 3-day free trial ---
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 3); // 3 days from now
+    await Subscription.create({
+      adminId: admin._id,
+      tier: "trial",
+      startsAt: new Date(),
+      expiresAt,
+      price: 0,
+      status: "active",
+    });
+
+    admin.isPaid = true;
+    admin.paidUntil = expiresAt;
+    admin.referralEnabled = false;
+    await admin.save();
+
     // notify owner (you) and the new admin
     await sendTelegram(ADMIN_CHAT_ID, `✅ New admin registered: *${firstname} ${lastname}* (${username})\nReferral: ${refCode}`);
-    await sendTelegram(admin.chatId, `🎉 Hi ${firstname}, welcome to Nexa Ultra!\nYour referral code: *${refCode}*`);
+    await sendTelegram(admin.chatId, `🎉 Hi ${firstname}, welcome to Nexa Ultra!\nYour referral code: *${refCode}*\n🆓 Free trial active until ${expiresAt.toUTCString()}`);
 
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ success: true, token, admin: { username, firstname, lastname, phone, referralCode: refCode } });
+    res.json({ 
+      success: true, 
+      token, 
+      admin: { username, firstname, lastname, phone, referralCode: refCode, trialExpires: expiresAt } 
+    });
   } catch (e) {
     console.error("admin/register error:", e && e.message || e);
     res.status(500).json({ success: false, error: "Registration failed" });
   }
 });
-
 // 🗳️ Vote for an Admin (public voting)
 app.post("/admins/vote", async (req, res) => {
   try {
