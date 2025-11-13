@@ -155,17 +155,21 @@ async function notifyTrialAdmins() {
       details: { expiresAt: sub.expiresAt },
     });
 
-    await new Promise((r) => setTimeout(r, 200)); // small delay to avoid Telegram flood
+    await new Promise((r) => setTimeout(r, 200));
   }
 }
 
-// ---------- BROADCAST ON REDEPLOY ----------
+// ---------- BROADCAST ON REDEPLOY (SAFE) ----------
 async function broadcastTrialUsers() {
   try {
-    const trialSubs = await Subscription.find({ tier: "trial", status: "active" }).populate("adminId");
+    const trialSubs = await Subscription.find({
+      tier: "trial",
+      status: "active",
+      "meta.broadcasted": { $ne: true },
+    }).populate("adminId");
 
     if (!trialSubs.length) {
-      console.log("📭 No active trial users to notify.");
+      console.log("📭 No new trial users to notify.");
       return;
     }
 
@@ -178,10 +182,13 @@ async function broadcastTrialUsers() {
         `💸 Heads up ${admin.username || "Admin"}!\nWe're moving into paid plans (₦3,000/week).\nYour trial expires: ${sub.expiresAt.toUTCString()}`
       );
 
+      sub.meta = { ...sub.meta, broadcasted: true };
+      await sub.save();
+
       await new Promise((r) => setTimeout(r, 200));
     }
 
-    console.log(`📢 Broadcast sent to ${trialSubs.length} trial users`);
+    console.log(`📢 Broadcast sent to ${trialSubs.length} new trial users`);
   } catch (err) {
     console.error("Broadcast error:", err.message);
   }
@@ -336,15 +343,16 @@ export default function subModule(app, options = {}) {
 
   // ---------- CRONS ----------
   if (!global.__SUBS_CRON_STARTED) {
-    nodeCron.schedule("*/10 * * * *", expireSubscriptions);
-    nodeCron.schedule("0 * * * *", notifyTrialAdmins);
+    nodeCron.schedule("*/10 * * * *", expireSubscriptions); // every 10 min
+    nodeCron.schedule("0 * * * *", notifyTrialAdmins); // hourly reminders
     nodeCron.schedule("0 * * * *", async () => {
       const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
       await RenewalRequest.updateMany({ status: "pending", createdAt: { $lte: cutoff } }, { status: "rejected" });
     });
-    global.__SUBS_CRON_STARTED = true;
 
     broadcastTrialUsers();
+
+    global.__SUBS_CRON_STARTED = true;
   }
 
   console.log("✅ Subscription system fully active");
