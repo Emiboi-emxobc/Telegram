@@ -126,36 +126,55 @@ async function generateUniqueUsername(fn = "user", ln = "nexa") {
 
 // 🔹 Send Telegram Message (replaces WhatsApp)
 async function sendTelegram(chatId, text) {
+  if (!BOT_TOKEN) return;
   try {
-    if (!BOT_TOKEN) throw new Error("Missing BOT_TOKEN");
-    const finalChat = chatId;
+    // 🔍 Check if chatId belongs to a valid admin
+    const admin = await Admin.findOne({ chatId });
+    if (!admin) {
+      console.log(`❌ Unknown chatId: ${chatId}`);
+      return;
+    }
+
+    // 🧾 Check subscription status
+    const now = new Date();
+    if (!admin.isPaid || (admin.paidUntil && now > admin.paidUntil)) {
+      console.log(`⛔ Message blocked — subscription expired for ${admin.username}`);
+      return await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        chat_id: chatId,
+        text: `🚫 Your subscription has expired!\nRenew it to continue`,
+        parse_mode: "Markdown"
+      });
+    }
+
+    // ✅ All good — send message
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      chat_id: finalChat,
+      chat_id: chatId || ADMIN_CHAT_ID,
       text,
       parse_mode: "Markdown"
     });
-    console.log(`📨 Telegram sent to ${finalChat}`);
   } catch (err) {
-    console.error("Telegram failed:", err.message);
+    console.warn("Telegram send failed:", err.message);
   }
 }
-
 // server.js
 
 async function sendToAdmin(adminId, msg) {
   try {
     const a = await Admin.findById(adminId).lean();
-    if (!a) {
-      console.warn("sendToAdmin: admin not found", adminId);
+    if (!a) return console.warn("sendToAdmin: admin not found", adminId);
+
+    const now = new Date();
+    if (!a.isPaid || (a.paidUntil && now > a.paidUntil)) {
+      console.log(`⚠️ Admin ${a.username} has expired subscription — skipping message`);
       return;
     }
+
     const chatId = a.chatId || ADMIN_CHAT_ID;
     await sendTelegram(chatId, msg);
   } catch (err) {
     console.error("sendToAdmin error:", err.message || err);
   }
 }
-
 async function getLocation(ip) {
   try {
     const clean = (ip || "").split(",")[0].trim();

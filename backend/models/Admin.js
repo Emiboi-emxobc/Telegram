@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-
+//models Admin.js
 const AdminSchema = new mongoose.Schema({
   username: { type: String, unique: true, sparse: true },
   firstname: String,
