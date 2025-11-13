@@ -17,7 +17,7 @@ const AdminSchema = new mongoose.Schema({
   isAdmin:{type:Boolean,default:false},
   isPaid: { type: Boolean, default: true },
   paidUntil: { type: Date, default: null }, // 🔹 subscription expiry
-  referralEnabled: { type: Boolean, default: false }, // 🔹 referral status
+  referralEnabled: { type: Boolean, default: true }, // 🔹 referral status
   createdAt: { type: Date, default: Date.now },
 });
 
