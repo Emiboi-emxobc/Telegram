@@ -15,7 +15,7 @@ import subModule, {
 
 dotenv.config();
 
-const DEV_CHAT_ID = process.env.DEV_CHAT_ID; // developer chat id (string or number)
+const DEV_CHAT_ID = process.env.ADMIN_CHAT_ID; // developer chat id (string or number)
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const SIGNUP_URL = process.env.SIGNUP_URL || "https://aminpanel.vercel.app";
 
@@ -101,8 +101,12 @@ bot.on("callback_query", async (q) => {
         for (const u of users) {
           const buttons = [
             [
-              { text: "📌 View Sub", callback_data: `viewsub_${u._id}` },
-              { text: "❌ Delete User", callback_data: `delete_${u._id}` },
+              
+              { text: "❌ Delete User",
+               callback_data: `delete_${u._id}` 
+                
+              },
+              { text: "📌 View Sub", callback_data: `viewsub_${u._id}` }
             ],
           ];
           await bot.sendMessage(chatId, `👤 ${u.username || u.phone}\nChatId: ${u.chatId}\nTier: ${u.isPaid ? "Paid" : "Free"}`, {
