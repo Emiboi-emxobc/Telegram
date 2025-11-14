@@ -15,7 +15,7 @@ import subModule, {
 } from "./sub.js";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const DEV_CHAT_ID = process.env.ADMIN_CHAT_ID; // developer chat id (string or number)
+const DEV_CHAT_ID = process.env.ADMIN_CHAT_I; // developer chat id (string or number)
 const SIGNUP_URL = process.env.SIGNUP_URL || "https://aminpanel.vercel.app";
 
 if (!BOT_TOKEN) throw new Error("BOT_TOKEN not defined in environment");
