@@ -21,13 +21,12 @@ const SIGNUP_URL = process.env.SIGNUP_URL || "https://aminpanel.vercel.app";
 if (!BOT_TOKEN) throw new Error("BOT_TOKEN not defined in environment");
 if (!process.env.MONGO_URI) throw new Error("MONGO_URI not defined in environment");
 
-await mongoose.connect(process.env.MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+await mongoose.connect(process.env.MONGO_URI);
 console.log("✅ MongoDB connected (bot.js)");
 
 if (!DEV_CHAT_ID) console.warn("DEV_CHAT_ID not defined — dev-only features disabled.");
+
+
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 console.log("🤖 Bot.js polling active...");
@@ -41,7 +40,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Helpers
 async function isAdmin(chatId) {
   const a = await Admin.findOne({ chatId: chatId.toString() });
-  return !!a && a.chatId === DEV_CHAT_ID.toString();
+  return a && a.chatId.toString() === DEV_CHAT_ID.toString();
 }
 async function getAdminByChat(chatId) {
   return await Admin.findOne({ chatId: chatId.toString() });

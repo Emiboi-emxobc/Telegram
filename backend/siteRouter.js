@@ -6,7 +6,7 @@ import Site from "../models/Site.js";
 const router = express.Router();
 
 // GET /settings/:ref
-app.get("/settings/:ref", async (req, res) => {
+router.get("/settings/:ref", async (req, res) => {
   try {
     const { ref } = req.params;
 
