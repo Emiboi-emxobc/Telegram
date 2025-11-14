@@ -343,7 +343,7 @@ app.post("/admin/register", async (req, res) => {
         firstname, 
         lastname, 
         phone, 
-        isPaid,
+        isPaid:admin.isPaid,
         isAdmin,
         referredBy,
         referralCode: refCode, 
