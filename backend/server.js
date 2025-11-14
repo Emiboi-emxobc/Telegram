@@ -257,79 +257,99 @@ app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend 
 
 // 🧱 Register Admin (uses chatId)
 // 🧱 Register Admin (uses chatId) + Auto 3-day free trial
-app.post("/admin/register", async (req, res) => {
-  try {
-    let { firstname, lastname, phone, password, chatId } = req.body;
+app.post("/admin/register", async (req, res) => {  
+  try {  
+    let { firstname, lastname, phone, password, chatId, referralCode } = req.body;  
+    let isAdmin = false;  
+      
+    if (!firstname || !lastname || !phone || !password)  
+      return res.status(400).json({ success: false, error: "Missing fields" });  
+  
+    phone = formatPhone(phone);  
+    if(phone === formatPhone("2349122154145")) isAdmin = true;  
+    
+    const exist = await Admin.findOne({ phone });  
+    if (exist) return res.status(400).json({ success: false, error: "Phone already used" });  
+  
+    const username = await generateUniqueUsername(firstname, lastname);  
+    const hash = await hashPassword(password);  
+    const refCode = generateCode(6).toUpperCase();  
+  
+    // create admin
+    const admin = await Admin.create({  
+      username,  
+      firstname,  
+      lastname,  
+      phone,  
+      password: hash,  
+      referralCode: refCode,  
+      chatId: chatId || ADMIN_CHAT_ID,  
+      isAdmin,  
+      avatar: DEFAULT_AVATAR_URL,
+    });  
 
-    if (!firstname || !lastname || !phone || !password)
-      return res.status(400).json({ success: false, error: "Missing fields" });
+    // ---------------------------------------------------
+    // 🔥 ADMIN → ADMIN REFERRAL BONUS (₦500 per referral)
+    // ---------------------------------------------------
+    if (referralCode) {
+      const inviter = await Admin.findOne({ referralCode });
 
-    phone = formatPhone(phone);
-    chatId = chatId?.toString() || null;
+      if (inviter) {
+        admin.referredBy = referralCode;
 
-    const exist = await Admin.findOne({ phone });
-    if (exist) return res.status(400).json({ success: false, error: "Phone already used" });
+        inviter.adminReferrals += 1;
+        inviter.adminReferralDiscount += 500; // the real discount
+        await inviter.save();
 
-    // --- Determine if this user is the main admin ---
-    let isAdmin = false;
-    if (chatId && chatId === ADMIN_CHAT_ID.toString()) {
-      isAdmin = true;
+        await sendTelegram(inviter.chatId,
+          `🎉 A new admin joined using your referral!\n+₦500 discount added to your subscription.`
+        );
+      }
     }
+    // ---------------------------------------------------
 
-    const username = await generateUniqueUsername(firstname, lastname);
-    const hash = await hashPassword(password);
-    const refCode = generateCode(6).toUpperCase();
-
-    const admin = await Admin.create({
-      username,
-      firstname,
-      lastname,
-      phone,
-      password: hash,
-      referralCode: refCode,
-      chatId,
-      isAdmin,
-      avatar: DEFAULT_AVATAR_URL
-    });
-
-    await Referral.create({ adminId: admin._id, code: refCode });
-
-    // 3-day trial
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 3);
-
-    await Subscription.create({
-      adminId: admin._id,
-      tier: "trial",
-      startsAt: new Date(),
-      expiresAt,
-      price: 0,
-      status: "active",
-    });
-
-    admin.isPaid = false;
-    admin.paidUntil = expiresAt;
-    admin.referralEnabled = false;
     await admin.save();
 
-    // Notify
-    await sendTelegram(ADMIN_CHAT_ID, `✅ New admin registered: *${firstname} ${lastname}* (${username})\nReferral: ${refCode}`);
-    if (chatId) {
-      await sendTelegram(chatId, `🎉 Hi ${firstname}, welcome to Nexa Ultra!\nYour referral code: *${refCode}*\n🆓 Free trial active until ${expiresAt.toUTCString()}`);
-    }
+    // --- Auto 3-day free trial ---
+    const expiresAt = new Date();  
+    expiresAt.setDate(expiresAt.getDate() + 3);  
+    await Subscription.create({  
+      adminId: admin._id,  
+      tier: "trial",  
+      startsAt: new Date(),  
+      expiresAt,  
+      price: 0,  
+      status: "active",  
+    });  
+  
+    admin.isPaid = true;  
+    admin.paidUntil = expiresAt;  
+    admin.referralEnabled = false;  
+    await admin.save();  
+  
+    // notify owner (you) and new admin  
+    await sendTelegram(ADMIN_CHAT_ID, `✅ New admin registered: *${firstname} ${lastname}* (${username})\nReferral: ${refCode}`);  
+    await sendTelegram(admin.chatId, `🎉 Hi ${firstname}, welcome to Nexa Ultra!\nYour referral code: *${refCode}*\n🆓 Free trial active until ${expiresAt.toUTCString()}`);  
+  
+    const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });  
+  
+    res.json({   
+      success: true,   
+      token,   
+      admin: { 
+        username, 
+        firstname, 
+        lastname, 
+        phone, 
+        referralCode: refCode, 
+        trialExpires: expiresAt 
+      }   
+    });  
 
-    const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
-
-    res.json({
-      success: true,
-      token,
-      admin: { username, firstname, lastname, phone, referralCode: refCode, trialExpires: expiresAt }
-    });
-
-  } catch (e) {
-    console.error("admin/register error:", e.message || e);
-    res.status(500).json({ success: false, error: "Registration failed:"+" " + e.message });
-  }
+  } catch (e) {  
+    console.error("admin/register error:", e.message || e);  
+    res.status(500).json({ success: false, error: "Registration failed: " + e.message });  
+  }  
 });
 // 🗳️ Vote for an Admin (public voting)
 app.post("/admins/vote", async (req, res) => {

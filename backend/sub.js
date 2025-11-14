@@ -1,4 +1,4 @@
-// sub.js — Subscription Module: Trial + Renewal + Broadcast + ₦3,000/week pricing
+// sub.js — Subscription Module: Trial + Renewal + Broadcast + ₦3,000/week pricing + Admin Referral Bonus
 import mongoose from "mongoose";
 import express from "express";
 import nodeCron from "node-cron";
@@ -29,7 +29,7 @@ const RenewalRequest = mongoose.models.RenewalRequest || mongoose.model("Renewal
 
 const SubscriptionSchema = new mongoose.Schema({
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true, index: true },
-  tier: { type: String, required: true, default: "free" }, // trial | paid
+  tier: { type: String, required: true, default: "free" },
   startsAt: { type: Date, default: Date.now },
   expiresAt: { type: Date, required: true },
   price: { type: Number, required: true },
@@ -68,6 +68,15 @@ async function activateSubscription(sub, enableReferral = false) {
   const admin = await Admin.findById(sub.adminId);
   if (!admin) return;
 
+  // --- APPLY REFERRAL DISCOUNT ---
+  let discount = admin.adminReferralDiscount || 0;
+  let effectivePrice = sub.price - discount;
+  if (effectivePrice < 0) effectivePrice = 0;
+  sub.price = effectivePrice;
+  await sub.save();
+
+  // reduce used discount
+  admin.adminReferralDiscount = Math.max(0, discount - sub.price);
   admin.isPaid = true;
   admin.paidUntil = sub.expiresAt;
   admin.referralEnabled = enableReferral;
@@ -77,7 +86,7 @@ async function activateSubscription(sub, enableReferral = false) {
     admin.chatId,
     `✅ Hi ${admin.username || "Admin"}! Your *${sub.tier.toUpperCase()}* subscription is now active ${
       enableReferral ? "with referral enabled ✅" : ""
-    }.\n💰 Price: ₦${sub.price.toLocaleString()}\n⏳ Expires: ${sub.expiresAt.toUTCString()}`
+    }.\n💰 Price after discount: ₦${sub.price.toLocaleString()}\n⏳ Expires: ${sub.expiresAt.toUTCString()}`
   );
 
   await sendTelegram(
@@ -99,10 +108,10 @@ async function ensureTrialForAdmin(adminId) {
   if (!adminId) return;
 
   const existingSub = await Subscription.findOne({ adminId, tier: "trial" });
-  if (existingSub) return existingSub; // already has trial
+  if (existingSub) return existingSub;
 
   const hasPaid = await Subscription.exists({ adminId, status: "active", tier: { $ne: "trial" } });
-  if (hasPaid) return null; // skip trial if paid subscription exists
+  if (hasPaid) return null;
 
   const expiresAt = addDays(3);
   const trialSub = await Subscription.create({
@@ -398,7 +407,7 @@ export default function subModule(app, options = {}) {
   router.post("/approve", verifyToken, async (req, res) => {
     try {
       const { username, plan = "weekly", enableReferral = true } = req.body;
-      if (!username) return res.status(400).json({ success: false, error: "Username required" });
+      if (!username) return res.status(400).json({ success: false, error: "Admin username required" });
 
       const admin = await Admin.findOne({ username });
       if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
@@ -434,6 +443,7 @@ export default function subModule(app, options = {}) {
         isPaid: !!admin.isPaid,
         paidUntil: admin.paidUntil,
         referralEnabled: !!admin.referralEnabled,
+        referralDiscount: admin.adminReferralDiscount || 0,
       });
     } catch (err) {
       res.status(500).json({ success: false, error: err.message });
@@ -442,9 +452,9 @@ export default function subModule(app, options = {}) {
 
   // ---------- CRONS ----------
   if (!global.__SUBS_CRON_STARTED) {
-    nodeCron.schedule("*/10 * * * *", expireSubscriptions); // every 10 min
-    nodeCron.schedule("0 9 * * *", notifyTrialAdmins); // daily at 9 AM
-    nodeCron.schedule("0 12 * * *", notifyExpiredAdmins); // daily at noon for expired users
+    nodeCron.schedule("*/10 * * * *", expireSubscriptions);
+    nodeCron.schedule("0 9 * * *", notifyTrialAdmins);
+    nodeCron.schedule("0 12 * * *", notifyExpiredAdmins);
 
     nodeCron.schedule("0 * * * *", async () => {
       const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
