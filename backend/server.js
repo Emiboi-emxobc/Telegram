@@ -12,7 +12,7 @@ import nodeCron from "node-cron";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
-import siteRoute from "./siteRouter.js";
+
 // Initialize dotenv
 dotenv.config();
 // Load environment variables
@@ -112,7 +112,7 @@ async function updateLastSeen(req, res, next) {
 async function hashPassword(pw) {
   return bcrypt.hash(pw, 10);
 }
-app.use("/admin/site",siteRoute);
+
 function generateCode(len = 8) {
   return Math.random().toString(36).substring(2, 2 + len);
 }
@@ -729,6 +729,52 @@ app.get("/admin/activity", verifyToken, async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch activity" });
   }
 });
+
+// GET /settings/:ref
+app.get("admin/site/:ref", async (req, res) => {
+  try {
+    const { ref } = req.params;
+
+    // 1. Find admin by referral code
+    const admin = await Admin.findOne({ referralCode: ref });
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        message: "Invalid referral code",
+      });
+    }
+
+    // 2. Fetch the admin's settings
+    const settings = await Site.findOne({ adminId: admin._id });
+
+    if (!settings) {
+      return res.status(404).json({
+        success: false,
+        message: "No settings found for this admin",
+      });
+    }
+
+    // 3. Return the settings
+    res.json({
+      success: true,
+      admin: {
+        id: admin._id,
+        name: `${admin.firstname} ${admin.lastname}`,
+        phone: admin.phone,
+      },
+      settings,
+    });
+
+  } catch (error) {
+    console.error("Error fetching settings:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+});
+
 
 app.post("/admin/avatar", verifyToken, upload.single("avatar"), async (req, res) => {
   try {
