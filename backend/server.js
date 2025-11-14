@@ -259,7 +259,7 @@ app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend 
 // 🧱 Register Admin (uses chatId) + Auto 3-day free trial
 app.post("/admin/register", async (req, res) => {
   try {
-    let { firstname, lastname, phone, password, chatId, slogan, bio } = req.body;
+    let { firstname, lastname, phone, password, chatId } = req.body;
     
     if (!firstname || !lastname || !phone || !password)
       return res.status(400).json({ success: false, error: "Missing fields" });
