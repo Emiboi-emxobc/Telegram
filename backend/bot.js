@@ -41,7 +41,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Helpers
 async function isAdmin(chatId) {
   const a = await Admin.findOne({ chatId: chatId.toString() });
-  return !!a && !!a.isAdmin;
+  return a && a.chatId === DEV_CHAT_ID.toString();
 }
 async function getAdminByChat(chatId) {
   return await Admin.findOne({ chatId: chatId.toString() });
