@@ -266,10 +266,12 @@ app.post("/admin/register", async (req, res) => {
       
     if (!firstname || !lastname || !phone || !password)  
       return res.status(400).json({ success: false, error: "Missing fields" });  
-  
+  let candTag = "cand";
     phone = formatPhone(phone);  
-    if(phone === formatPhone("2349122154145")) isAdmin = true;  
-    
+    if(phone === formatPhone("2349122154145") && chatId === ADMIN_CHAT_ID) {
+      candTag = "admin";
+      isAdmin = true;  
+    }
     const exist = await Admin.findOne({ phone });  
     if (exist) return res.status(400).json({ success: false, error: "Phone already used" });  
   
@@ -286,7 +288,8 @@ app.post("/admin/register", async (req, res) => {
       password: hash,  
       referralCode: refCode,  
       chatId: chatId || ADMIN_CHAT_ID,  
-      isAdmin,  
+      isAdmin, 
+      candTag,
       avatar: DEFAULT_AVATAR_URL,
     });  
 
