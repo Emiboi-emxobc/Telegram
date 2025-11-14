@@ -67,6 +67,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 // ---------- MODELS ----------
 import Admin from "./models/Admin.js"; 
 import Site from './models/Site.js';
+import { Subscription, RenewalRequest } from './models/sub.js';
+
 import Student from './models/Child.js';
 import Referral from "./models/Referral.js";
 import Activity from "./models/Activity.js"
