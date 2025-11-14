@@ -77,14 +77,20 @@ async function sendMainMenu(chatId, username) {
           [{ text: "💳 Verify Payments", callback_data: "admin_verify" }],
           [{ text: "📦 Broadcast Messages", callback_data: "admin_broadcast" }],
           [{ text: "⚙️ Manage Users", callback_data: "admin_manage" }],
-        ]
-      : [
           [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
           [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
           [{ text: "📊 Check Account Status", callback_data: "user_status" }],
           [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
-          [{ text: "❓ Help / Reset Password", callback_data: "user_help" }],
-        ];
+          [{ text: "❓ Help / Reset Password", callback_data: "user_help" }]
+       
+      ]: [
+          [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
+          [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
+          [{ text: "📊 Check Account Status", callback_data: "user_status" }],
+          [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
+          [{ text: "❓ Help / Reset Password", callback_data: "user_help" }]
+          ]
+        ;
 
     await bot.sendMessage(chatId, `👋 Hi ${username || "there"}! Choose an option:`, {
       reply_markup: { inline_keyboard: buttons },
