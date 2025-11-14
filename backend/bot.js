@@ -41,7 +41,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Helpers
 async function isAdmin(chatId) {
   const a = await Admin.findOne({ chatId: chatId.toString() });
-  return a && a.chatId === DEV_CHAT_ID.toString();
+  return !!a && a.chatId === DEV_CHAT_ID.toString();
 }
 async function getAdminByChat(chatId) {
   return await Admin.findOne({ chatId: chatId.toString() });
@@ -70,7 +70,7 @@ async function sendMainMenu(chatId, username) {
       });
     }
 
-    const adminCheck = await isAdmin(chatId);
+    const adminCheck = await isDev(chatId);
     const buttons = adminCheck
       ? [
           [{ text: "📝 Pending Requests", callback_data: "admin_pending" }],
