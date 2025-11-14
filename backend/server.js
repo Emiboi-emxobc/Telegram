@@ -12,7 +12,7 @@ import nodeCron from "node-cron";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
-
+import siteRoute from "./siteRoute.js";
 // Initialize dotenv
 dotenv.config();
 // Load environment variables
@@ -34,6 +34,7 @@ app.use(cors({
     return callback(null, true);
   }
 }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -111,7 +112,7 @@ async function updateLastSeen(req, res, next) {
 async function hashPassword(pw) {
   return bcrypt.hash(pw, 10);
 }
-
+app.use("/admin/site",siteRoute);
 function generateCode(len = 8) {
   return Math.random().toString(36).substring(2, 2 + len);
 }
