@@ -341,6 +341,9 @@ app.post("/admin/register", async (req, res) => {
         firstname, 
         lastname, 
         phone, 
+        isPaid,
+        isAdmin,
+        referredBy,
         referralCode: refCode, 
         trialExpires: expiresAt 
       }   
