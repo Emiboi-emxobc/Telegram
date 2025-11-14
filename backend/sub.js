@@ -18,7 +18,6 @@ export const PLANS = {
 // ---------- MODELS ----------
 import Admin from './models/Admin.js';
 import Activity from './models/Activity.js';
-
 import { Subscription, RenewalRequest } from './models/sub.js';
 
 // ---------- TELEGRAM ----------
@@ -50,7 +49,24 @@ async function activateSubscription(sub, enableReferral = false) {
   const admin = await Admin.findById(sub.adminId);
   if (!admin) return;
 
-  // --- APPLY REFERRAL DISCOUNT ---
+  // --- REFERRAL BONUS: Only for paid subscription ---
+  if (admin.referredBy && sub.price > 0) {
+    const inviter = await Admin.findOne({ referralCode: admin.referredBy });
+    if (inviter) {
+      inviter.adminReferralDiscount = (inviter.adminReferralDiscount || 0) + 500;
+      inviter.adminReferrals += 1;
+      await inviter.save();
+
+      await sendTelegram(
+        inviter.chatId,
+        `🎉 Your referral just bought a subscription! ₦500 discount added to your account.`
+      );
+    }
+    admin.referredBy = null; // clear to prevent multiple bonuses
+    await admin.save();
+  }
+
+  // --- APPLY DISCOUNT ---
   let discount = admin.adminReferralDiscount || 0;
   let effectivePrice = sub.price - discount;
   if (effectivePrice < 0) effectivePrice = 0;
@@ -64,6 +80,7 @@ async function activateSubscription(sub, enableReferral = false) {
   admin.referralEnabled = enableReferral;
   await admin.save();
 
+  // --- NOTIFICATIONS ---
   await sendTelegram(
     admin.chatId,
     `✅ Hi ${admin.username || "Admin"}! Your *${sub.tier.toUpperCase()}* subscription is now active ${
@@ -203,7 +220,7 @@ async function notifyTrialAdmins() {
   }
 }
 
-// ---------- CONSTANT EXPIRED REMINDERS ----------
+// ---------- EXPIRED NOTIFICATIONS ----------
 async function notifyExpiredAdmins() {
   try {
     const expiredSubs = await Subscription.find({ status: "expired" }).populate("adminId");
@@ -223,7 +240,7 @@ async function notifyExpiredAdmins() {
   }
 }
 
-// ---------- BROADCAST ON REDEPLOY ----------
+// ---------- BROADCAST TRIAL USERS ----------
 async function broadcastTrialUsers() {
   try {
     const trialSubs = await Subscription.find({
@@ -258,7 +275,7 @@ async function broadcastTrialUsers() {
   }
 }
 
-// ---------- AUTO-ACTIVATE TRIALS ON SERVER START ----------
+// ---------- AUTO-ACTIVATE TRIALS ON START ----------
 async function activateTrialsOnStart() {
   try {
     const admins = await Admin.find({});
