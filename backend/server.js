@@ -12,7 +12,7 @@ import nodeCron from "node-cron";
 import bodyParser from "body-parser";
 import path from "path";
 import { fileURLToPath } from "url";
-import siteRoute from "./siteRoute.js";
+import siteRoute from "./siteRouter.js";
 // Initialize dotenv
 dotenv.config();
 // Load environment variables
