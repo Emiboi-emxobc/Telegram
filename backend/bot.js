@@ -225,10 +225,17 @@ bot.on("callback_query", async (q) => {
     const admin = await getAdminByChat(chatId);
 
     // if user clicks user_* but not registered
-    if (data.startsWith("user_") && !admin) {
-      return bot.sendMessage(chatId, "⚠️ You are not registered yet. Visit the site to sign up or send your Telegram username to the dev.");
-    }
-
+    // if user clicks user_* but not registered
+if (data.startsWith("user_") && !admin) {
+  return bot.sendMessage(
+    chatId,
+    `⚠️ You are not registered yet.\n\n` +
+    `👉 *Your Chat ID:* \`${chatId}\`\n\n` +
+    `🔗 Sign up here: ${SIGNUP_URL}\n\n` +
+    `Use your Telegram username or the Chat ID above when registering.`,
+    { parse_mode: "Markdown" }
+  );
+}
     // User Signup / Instructions
     if (data === "user_signup") {
       return bot.sendMessage(chatId, `📝 To sign up:\n1) Visit: ${SIGNUP_URL}\n2) Use your Telegram username or chatId: ${chatId}\n3) Follow instructions on the site.`);
