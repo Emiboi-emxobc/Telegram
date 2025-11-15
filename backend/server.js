@@ -325,7 +325,7 @@ app.post("/admin/login", async (req, res) => {
   }
 });
 
-// ---------- ADMIN PROFILE ----------
+// ---------- ADMIN PROFILE -----
 app.get("/admin/profile", verifyToken, updateLastSeen, async (req, res) => {
   try {
     const admin = await Admin.findById(req.userId);
@@ -513,7 +513,6 @@ app.use((req, res) => {
 // ---------- BOOTSTRAP DEFAULT ADMIN ----------
 
 // ---------- SERVER START ----------
-const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
   console.log(`🚀 Nexa Ultra running on port ${PORT}`);
 
