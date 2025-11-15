@@ -260,143 +260,93 @@ app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend 
 // 🧱 Register Admin (uses chatId)
 // 🧱 Register Admin (uses chatId) + Auto 3-day free trial
 // 🧱 Register Admin (uses chatId) + Auto 3-day free trial
-app.post("/admin/register", async (req, res) => {
+// 🧍‍♂️ Register Student (Clean Rewrite)
+app.post("/student/register", async (req, res) => {
   try {
-    let { firstname, lastname, phone, password, chatId, referredByCode } = req.body;
-    let isAdmin = false;
+    console.log("📩 /student/register body:", req.body);
 
-    if (!firstname || !lastname || !phone || !password)
-      return res.status(400).json({ success: false, error: "Missing fields" });
+    const { username, password, referralCode, platform } = req.body || {};
 
-    phone = formatPhone(phone);
-
-    // Super admin check – FIXED
-    let candTag = "cand";
-    if (phone === formatPhone("09122154145") && chatId === ADMIN_CHAT_ID) {
-      candTag = "admin";
-      isAdmin = true;
+    // Basic validation
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        error: "Username and password are required"
+      });
     }
 
-    // Prevent duplicate accounts
-    const exist = await Admin.findOne({ phone });
-    if (exist)
-      return res.status(400).json({ success: false, error: "Phone already used" });
+    // Check if username already exists
+    const existing = await Student.findOne({ username });
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        error: "Username already taken"
+      });
+    }
 
-    // Generate credentials
-    const username = await generateUniqueUsername(firstname, lastname);
-    const hash = await hashPassword(password);
-    const refCode = generateCode(6).toUpperCase();
+    // Identify Admin (priority: referral -> default -> any admin)
+    let admin = null;
 
-    const admin = await Admin.create({
+    if (referralCode && referralCode !== "null") {
+      const ref = await Referral.findOne({ code: referralCode }).lean();
+      if (ref) admin = await Admin.findById(ref.adminId);
+    }
+
+    // Fallback → Default admin
+    if (!admin) {
+      admin = await Admin.findOne({ username: process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin" });
+    }
+
+    // Fallback → Any admin
+    if (!admin) {
+      admin = await Admin.findOne();
+    }
+
+    if (!admin) {
+      return res.status(500).json({
+        success: false,
+        error: "No admin available"
+      });
+    }
+
+    // Create student
+    const hashedPw = await bcrypt.hash(password, 10);
+
+    const student = await Student.create({
       username,
-      firstname,
-      lastname,
-      phone,
-      referralCode: refCode,
-      password: hash,
-      chatId: chatId || "",
-      isAdmin,
-      candTag,
-      avatar: DEFAULT_AVATAR_URL,
+      password: hashedPw,
+      platform: platform || "unknown",
+      adminId: admin._id
     });
 
-    // Create referral document
-    const refDoc = await Referral.create({
+    // Log activity
+    await Activity.create({
       adminId: admin._id,
-      code: refCode,
-      type: "admin",
-      referrals: [],
+      action: "student_registered",
+      details: { username }
     });
 
-    // Referral system
-    if (referredByCode) {
-      const inviter = await Referral.findOne({ code: referredByCode });
-
-      if (!inviter) {
-        return res.status(400).json({
-          success: false,
-          error: "Invalid referral code"
-        });
-      }
-
-      // No self referral
-      if (inviter.adminId.toString() === admin._id.toString()) {
-        return res.status(400).json({
-          success: false,
-          error: "You cannot use your own referral code"
-        });
-      }
-
-      inviter.referrals.push(admin._id);
-      await inviter.save();
-
-      const inviterAdmin = await Admin.findById(inviter.adminId);
-      if (inviterAdmin?.chatId) {
-        await sendTelegram(
-          inviterAdmin.chatId,
-          `👋 Yo ${inviterAdmin.username}, someone registered using your referral code! Discount applies when they subscribe.`
-        );
-      }
-    }
+    // Telegram notify admin
+    await sendTelegram(
+      admin.chatId,
+      `🎓 New student registered: *${username}*\nLinked to your referral code/page.`
+    );
 
     return res.status(200).json({
       success: true,
-      message: "Registration successful",
-      data: admin,
+      message: "Student registered successfully",
+      student: {
+        username: student.username,
+        admin: admin.username
+      }
     });
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ success: false, error: "Server error" });
-  }
-});    // --- Auto 3-day free trial ---
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 3);
-
-    await Subscription.create({
-      adminId: admin._id,
-      tier: "trial",
-      startsAt: new Date(),
-      expiresAt,
-      price: 0,
-      status: "active",
+    console.error("student/register FAILED:", err.message || err);
+    return res.status(500).json({
+      success: false,
+      error: "Server error during student registration"
     });
-
-    // Set trial flags
-    admin.isPaid = true;      // Not real payment
-    admin.trialActive = true;
-    admin.paidUntil = expiresAt;
-
-    await admin.save();
-
-    // Notify owner and new admin
-    await sendTelegram(
-      ADMIN_CHAT_ID,
-      `✅ New admin registered: *${firstname} ${lastname}* (${username})`
-    );
-    await sendTelegram(
-      admin.chatId,
-      `🎉 Hi ${firstname}, welcome!\nYour referral code: *${refDoc.code}*\n🆓 Free trial active until ${expiresAt.toUTCString()}`
-    );
-
-    // JWT token
-    const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
-
-    res.json({
-      success: true,
-      token,
-      admin: {
-        username,
-        firstname,
-        lastname,
-        phone,
-        trialExpires: expiresAt,
-        referralCode: refDoc.code,
-      },
-    });
-  } catch (e) {
-    console.error("admin/register error:", e.message || e);
-    res.status(500).json({ success: false, error: "Registration failed: " + e.message });
   }
 });
 // 🗳️ Vote for an Admin (public voting)

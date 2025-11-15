@@ -19,7 +19,6 @@ const AdminSchema = new mongoose.Schema({
   isPaid: { type: Boolean, default: true },
   paidUntil: { type: Date, default: null },
   referralEnabled: { type: Boolean, default: true },
-
   // 🔹 Referral tracking for admins
   adminReferrals: { type: Number, default: 0 },        // number of admins referred
   adminReferralDiscount: { type: Number, default: 0 }, // total ₦ discount accumulated
