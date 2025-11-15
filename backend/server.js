@@ -301,7 +301,7 @@ app.post("/admin/register", async (req, res) => {
 
     // Create a unique referral code for this admin
     const refDoc = await Referral.create({
-      ownerId: admin._id,
+      adminId: admin._id,
       code: generateCode(6).toUpperCase(),
       type: "admin",
       referrals: [],
