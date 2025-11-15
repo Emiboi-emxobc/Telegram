@@ -273,7 +273,7 @@ app.post("/admin/register", async (req, res) => {
       isAdmin,
       candTag,
       avatar: DEFAULT_AVATAR_URL,
-      isPaid: false
+      isPaid: true
     });
 
     // Create referral document
