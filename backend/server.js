@@ -267,7 +267,7 @@ app.post("/admin/register", async (req, res) => {
       firstname,
       lastname,
       phone,
-      referralCode: refCode,
+      referralCode: refCode || "direct",
       password: hash,
       chatId: chatId || "",
       isAdmin,
