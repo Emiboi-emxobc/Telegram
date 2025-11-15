@@ -511,41 +511,10 @@ app.use((req, res) => {
 });
 
 // ---------- BOOTSTRAP DEFAULT ADMIN ----------
-async function ensureDefaultAdmin() {
-  try {
-    const count = await Admin.countDocuments();
-    if (count > 0) return;
-
-    const username = process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin";
-    let phone = process.env.DEFAULT_ADMIN_PHONE || "09122154145";
-    try { phone = formatPhone(phone); } catch(e){ console.warn("Default admin phone invalid, using raw."); }
-
-    const password = await bcrypt.hash("024486", 10);
-    const referralCode = "seed_" + Date.now();
-
-    const admin = await Admin.create({
-      username,
-      firstname: "Nexa",
-      lastname: "Admin",
-      phone,
-      password,
-      referralCode,
-      avatar: process.env.DEFAULT_AVATAR_URL || "",
-      chatId: process.env.ADMIN_CHAT_ID || "",
-      isPaid: true
-    });
-
-    await Referral.create({ adminId: admin._id, code: referralCode, type: "admin", referrals: [] });
-
-    console.log("✅ Default admin created:", username);
-  } catch (err) {
-    console.error("ensureDefaultAdmin error:", err);
-  }
-}
 
 // ---------- SERVER START ----------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, async () => {
   console.log(`🚀 Nexa Ultra running on port ${PORT}`);
-  await ensureDefaultAdmin();
+
 });
