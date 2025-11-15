@@ -479,7 +479,6 @@ app.get("/activities", verifyToken, async (req, res) => {
   }
 });
 // ---------- CRON JOBS ----------
-import nodeCron from "node-cron";
 
 // Example: daily cleanup or subscription checks
 nodeCron.schedule("0 0 * * *", async () => {
