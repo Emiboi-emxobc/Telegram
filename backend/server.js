@@ -342,7 +342,7 @@ app.post("/admin/register", async (req, res) => {
         firstname, 
         lastname, 
         phone, 
-        referralCode: refCode, 
+        referalCode: refCode, 
         trialExpires: expiresAt 
       }   
     });  
