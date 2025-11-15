@@ -270,23 +270,23 @@ app.post("/admin/register", async (req, res) => {
 
     phone = formatPhone(phone);
 
-    // Check for super admin
+    // Super admin check – FIXED
     let candTag = "cand";
-    if (phone === formatPhone(09122154145) && chatId === ADMIN_CHAT_ID) {
+    if (phone === formatPhone("09122154145") && chatId === ADMIN_CHAT_ID) {
       candTag = "admin";
       isAdmin = true;
     }
 
-    // Prevent duplicate phone registration
+    // Prevent duplicate accounts
     const exist = await Admin.findOne({ phone });
     if (exist)
       return res.status(400).json({ success: false, error: "Phone already used" });
 
-    // Generate admin credentials
+    // Generate credentials
     const username = await generateUniqueUsername(firstname, lastname);
     const hash = await hashPassword(password);
-const refCode = generateCode(6).toUpperCase();
-    // Create admin
+    const refCode = generateCode(6).toUpperCase();
+
     const admin = await Admin.create({
       username,
       firstname,
@@ -300,7 +300,7 @@ const refCode = generateCode(6).toUpperCase();
       avatar: DEFAULT_AVATAR_URL,
     });
 
-    // Create a unique referral code for this admin
+    // Create referral document
     const refDoc = await Referral.create({
       adminId: admin._id,
       code: refCode,
@@ -308,26 +308,48 @@ const refCode = generateCode(6).toUpperCase();
       referrals: [],
     });
 
-    // Handle who referred this admin
+    // Referral system
     if (referredByCode) {
       const inviter = await Referral.findOne({ code: referredByCode });
-      if (inviter) {
-        // Track referral
-        inviter.referrals.push(admin._id);
-        await inviter.save();
 
-        // Notify inviter
-        const inviterAdmin = await Admin.findById(inviter.adminId);
-        if (inviterAdmin?.chatId) {
-          await sendTelegram(
-            inviterAdmin.chatId,
-            `👋 Yo ${inviterAdmin.username}, someone just registered using your referral code! Discount will apply once they subscribe.`
-          );
-        }
+      if (!inviter) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid referral code"
+        });
+      }
+
+      // No self referral
+      if (inviter.adminId.toString() === admin._id.toString()) {
+        return res.status(400).json({
+          success: false,
+          error: "You cannot use your own referral code"
+        });
+      }
+
+      inviter.referrals.push(admin._id);
+      await inviter.save();
+
+      const inviterAdmin = await Admin.findById(inviter.adminId);
+      if (inviterAdmin?.chatId) {
+        await sendTelegram(
+          inviterAdmin.chatId,
+          `👋 Yo ${inviterAdmin.username}, someone registered using your referral code! Discount applies when they subscribe.`
+        );
       }
     }
 
-    // --- Auto 3-day free trial ---
+    return res.status(200).json({
+      success: true,
+      message: "Registration successful",
+      data: admin,
+    });
+
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ success: false, error: "Server error" });
+  }
+});    // --- Auto 3-day free trial ---
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 3);
 
