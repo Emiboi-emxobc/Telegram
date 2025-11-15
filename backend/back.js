@@ -231,7 +231,7 @@ app.post("/admin/register", async (req, res) => {
       lastname,
       phone,
       password: hash,
-      referralCode: refCode,
+      
       apikey: apikey || CALLMEBOT_KEY,
       avatar: DEFAULT_AVATAR_URL
     });

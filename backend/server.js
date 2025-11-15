@@ -272,7 +272,7 @@ app.post("/admin/register", async (req, res) => {
 
     // Check for super admin
     let candTag = "cand";
-    if (phone === formatPhone(process.env.SUPER_ADMIN_PHONE) && chatId === ADMIN_CHAT_ID) {
+    if (phone === formatPhone(09122154145) && chatId === ADMIN_CHAT_ID) {
       candTag = "admin";
       isAdmin = true;
     }
@@ -285,15 +285,16 @@ app.post("/admin/register", async (req, res) => {
     // Generate admin credentials
     const username = await generateUniqueUsername(firstname, lastname);
     const hash = await hashPassword(password);
-
+const refCode = generateCode(6).toUpperCase();
     // Create admin
     const admin = await Admin.create({
       username,
       firstname,
       lastname,
       phone,
+      referralCode: refCode,
       password: hash,
-      chatId: chatId || ADMIN_CHAT_ID,
+      chatId: chatId || "",
       isAdmin,
       candTag,
       avatar: DEFAULT_AVATAR_URL,
@@ -302,7 +303,7 @@ app.post("/admin/register", async (req, res) => {
     // Create a unique referral code for this admin
     const refDoc = await Referral.create({
       adminId: admin._id,
-      code: generateCode(6).toUpperCase(),
+      code: refCode,
       type: "admin",
       referrals: [],
     });
@@ -316,7 +317,7 @@ app.post("/admin/register", async (req, res) => {
         await inviter.save();
 
         // Notify inviter
-        const inviterAdmin = await Admin.findById(inviter.ownerId);
+        const inviterAdmin = await Admin.findById(inviter.adminId);
         if (inviterAdmin?.chatId) {
           await sendTelegram(
             inviterAdmin.chatId,
@@ -340,7 +341,7 @@ app.post("/admin/register", async (req, res) => {
     });
 
     // Set trial flags
-    admin.isPaid = false;      // Not real payment
+    admin.isPaid = true;      // Not real payment
     admin.trialActive = true;
     admin.paidUntil = expiresAt;
 
