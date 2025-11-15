@@ -248,7 +248,7 @@ app.post("/admin/register", async (req, res) => {
 });
 
 // 🗳️ Vote for an Admin (public voting)
-app.post("/admins/vote", async (req, res) => {
+app.po st("/admins/vote", async (req, res) => {
   try {
     const { adminId } = req.body;
     if (!adminId) return res.status(400).json({ success: false, error: "Missing adminId" });
