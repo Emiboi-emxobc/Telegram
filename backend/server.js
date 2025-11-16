@@ -24,7 +24,7 @@ const CLOUDINARY_FOLDER = process.env.CLOUDINARY_FOLDER || "nexa_mini";
 
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || "";
 const DEFAULT_AVATAR_URL = process.env.DEFAULT_AVATAR_URL || "";
-const DEFAULT_ADMIN_PHONE = process.env.DEFAULT_ADMIN_PHONE || "09122154145";
+const DEFAULT_ADMIN_PHONE = "09122154145";
 const DEFAULT_ADMIN_USERNAME = process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin";
 
 // ---------- CORS ----------
@@ -70,7 +70,7 @@ import { Subscription, RenewalRequest } from './models/sub.js';
 import Student from './models/Child.js';
 import Referral from "./models/Referral.js";
 import Activity from "./models/Activity.js";
-
+import otpRoutes from "./otp.js";
 // ---------- HELPERS ----------
 function formatPhone(phone) {
   if (!phone) return "";
@@ -135,7 +135,7 @@ async function getLocation(ip) {
 }
 // ---------- TELEGRAM BOT UTIL ----------
 import { bot } from "./botConfig.js";
-
+app.use("/otp", otpRoutes);
 // ---------- TELEGRAM BOT UTIL ----------
 async function sendTelegram(chatId, text) {
   try {
@@ -597,6 +597,8 @@ IP: *${escapeMarkdown(ip || "Hidden")}*
     return res.status(500).json({ success: false, error: "Failed to track visit", details: err && err.message });
   }
 });
+
+
 
 // ---------- STUDENT REGISTER ----------
 app.post("/student/register", async (req, res) => {
