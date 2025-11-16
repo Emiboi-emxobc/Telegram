@@ -608,7 +608,7 @@ app.post("/student/register", async (req, res) => {
     const existing = await Student.findOne({ username });
     if (existing) return res.status(400).json({ success: false, error: "Username already taken" });
     
-    let student = existing;
+    let s = existing;
 
     // Resolve admin via referral -> default -> any
     let admin = null;
