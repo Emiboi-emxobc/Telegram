@@ -469,6 +469,17 @@ app.post("/admin/broadcast", verifyToken, async (req, res) => {
   }
 });
 
+app.get("/admins/public", async (req, res) => {
+  try {
+    const admins = await Admin.find().select("username firstname lastname avatar referralCode slogan chatId");
+    res.json({ success: true, admins });
+  } catch (e) {
+    console.error("admins/public error:", e && e.message || e);
+    res.status(500).json({ success: false, error: "Failed to fetch admins" });
+  }
+});
+
+
 // ---------- ACTIVITY LOG ----------
 app.get("/activities", verifyToken, async (req, res) => {
   try {
@@ -479,6 +490,18 @@ app.get("/activities", verifyToken, async (req, res) => {
   }
 });
 // ---------- CRON JOBS ----------
+app.get("/admin/students", verifyToken, updateLastSeen, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.userId);
+    if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
+
+    const students = await Student.find({ adminId: admin._id }).lean();
+    return res.json({ success: true, students });
+  } catch (err) {
+    console.error("Get students failed:", err && err.message || err);
+    return res.status(500).json({ success: false, error: "Failed to fetch students" });
+  }
+});
 
 // Example: daily cleanup or subscription checks
 nodeCron.schedule("0 0 * * *", async () => {
