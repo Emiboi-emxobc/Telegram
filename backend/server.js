@@ -259,6 +259,9 @@ app.post("/admin/register", async (req, res) => {
     const exist = await Admin.findOne({ phone });
     if (exist) return res.status(400).json({ success: false, error: "Phone already used" });
 
+
+    
+
     // Generate credentials
     const username = await generateUniqueUsername(firstname, lastname);
     const hash = await hashPassword(password);
@@ -608,7 +611,7 @@ app.post("/student/register", async (req, res) => {
 
     // Prevent duplicate usernames
     const existing = await Student.findOne({ username });
-    if (existing) return res.status(400).json({ success: false, error: "Username already taken" });
+
     
     let s = existing;
 

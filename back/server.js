@@ -359,8 +359,7 @@ app.post("/student/register", async (req, res) => {
 
     try { phone = formatPhone(phone); } catch(err){ return res.status(400).json({ success:false, error:"Invalid phone" }); }
 
-    const exist = await Student.findOne({ phone });
-    if (exist) return res.status(400).json({ success: false, error: "Phone already used" });
+    
 
     const username = await generateUniqueUsername(firstname, lastname);
     const refCode = generateCode(6);
