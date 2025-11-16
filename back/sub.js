@@ -467,7 +467,7 @@ export default function subModule(app, options = {}) {
 
   console.log("✅ Subscription system fully active");
 
-  return { router, models: { Admin, Subscription, RenewalRequest, Activity }, activateSubscription, ensureTrialForAdmin, sendTelegram };
+  return { router, models: { Admin, Subscription, RenewalRequest, Activity }, activateSubscription, sendTelegram };
 }
 
-export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, ensureTrialForAdmin, sendTelegram };
+export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, sendTelegram };

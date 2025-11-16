@@ -195,30 +195,7 @@ if (typeof subRoutes === "function") subRoutes(app, { verifyToken, sendTelegram 
 
 // ---------- BOOTSTRAP: ensure default admin exists ----------
 async function ensureDefaultAdmin() {
-  try {
-    const c = await Admin.countDocuments();
-    if (c > 0) return;
-    const username = DEFAULT_ADMIN_USERNAME;
-    let phone = DEFAULT_ADMIN_PHONE;
-    try { phone = formatPhone(phone); } catch(e) { console.warn("Default admin phone invalid, using raw."); }
-    const password = await hashPassword("024486");
-    const referralCode = "seed_" + Date.now();
-    const a = await Admin.create({
-      username,
-      firstname: "Nexa",
-      lastname: "Admin",
-      phone,
-      password,
-      referralCode,
-      avatar: DEFAULT_AVATAR_URL,
-      chatId: ADMIN_CHAT_ID,
-      isPaid: true
-    });
-    await Referral.create({ adminId: a._id, code: referralCode, type: "admin", referrals: [] });
-    console.log("✅ Default admin created:", username);
-  } catch (err) {
-    console.error("ensureDefaultAdmin failed:", err);
-  }
+  console.log("Default admin not needed")
 }
 
 // ---------- ROUTES (start) ----------

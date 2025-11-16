@@ -21,27 +21,27 @@ import Activity from './models/Activity.js';
 import { Subscription, RenewalRequest } from './models/sub.js';
 
 // ---------- TELEGRAM ----------
-async function sendTelegram(chatId, text) {
+async function sendTelegram(chatId, text, adminId) {
   if (!BOT_TOKEN) return;
-  try {
-    const admin = await Admin.findOne({ chatId });
-    if (admin && !admin.isPaid) {
-      return await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        chat_id: chatId,
-        text: `🚫 INCOMING MESSAGE BLOCKED\nYour link has expired. Send /start and select renew subscription to continue.`,
-        parse_mode: "Markdown",
-      });
-    }
 
-    await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      chat_id: chatId || ADMIN_CHAT_ID,
-      text,
+  const admin = adminId ? await Admin.findById(adminId) : await Admin.findOne({ chatId });
+
+  if (admin && !admin.isPaid) {
+    // expired users
+    return await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      chat_id: chatId,
+      text: `🚫 Your account is expired.\n\nName: ${admin.name}\nPhone: ${admin.phone}\nPlease pay and request renewal via the bot to regain access.`,
       parse_mode: "Markdown",
     });
-  } catch (err) {
-    console.warn("Telegram send failed:", err.message);
   }
+
+  await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    chat_id: chatId || ADMIN_CHAT_ID,
+    text,
+    parse_mode: "Markdown",
+  });
 }
+
 // ---------- HELPERS ----------
 const addDays = (days) => {
   const now = new Date();
@@ -57,7 +57,7 @@ async function activateSubscription(sub, enableReferral = false) {
   const admin = await Admin.findById(sub.adminId);
   if (!admin) return;
 
-  // --- REFERRAL BONUS: Only for paid subscription ---
+  // REFERRAL BONUS
   if (admin.referredBy && sub.price > 0) {
     const inviter = await Admin.findOne({ referralCode: admin.referredBy });
     if (inviter) {
@@ -65,35 +65,30 @@ async function activateSubscription(sub, enableReferral = false) {
       inviter.adminReferrals += 1;
       await inviter.save();
 
-      await sendTelegram(
-        inviter.chatId,
-        `🎉 Your referral just bought a subscription! ₦500 discount added to your account.`
-      );
+      await sendTelegram(inviter.chatId, `🎉 Your referral just bought a subscription! ₦500 discount added.`, inviter._id);
     }
-    admin.referredBy = null; // clear to prevent multiple bonuses
+    admin.referredBy = null; // prevent double bonus
     await admin.save();
   }
 
-  // --- APPLY DISCOUNT ---
+  // APPLY DISCOUNT
   let discount = admin.adminReferralDiscount || 0;
   let effectivePrice = sub.price - discount;
   if (effectivePrice < 0) effectivePrice = 0;
   sub.price = effectivePrice;
   await sub.save();
 
-  // reduce used discount
   admin.adminReferralDiscount = Math.max(0, discount - sub.price);
   admin.isPaid = true;
   admin.paidUntil = sub.expiresAt;
   admin.referralEnabled = enableReferral;
   await admin.save();
 
-  // --- NOTIFICATIONS ---
+  // NOTIFICATIONS
   await sendTelegram(
     admin.chatId,
-    `✅ Hi ${admin.username || "Admin"}! Your *${sub.tier.toUpperCase()}* subscription is now active ${
-      enableReferral ? "with referral enabled ✅" : ""
-    }.\n💰 Price after discount: ₦${sub.price.toLocaleString()}\n⏳ Expires: ${sub.expiresAt.toUTCString()}`
+    `✅ Hi ${admin.username || "Admin"}! Your *${sub.tier.toUpperCase()}* subscription is active ${enableReferral ? "with referral enabled ✅" : ""}.\n💰 Price after discount: ₦${sub.price.toLocaleString()}\n⏳ Expires: ${sub.expiresAt.toUTCString()}`,
+    admin._id
   );
 
   await sendTelegram(
@@ -110,41 +105,10 @@ async function activateSubscription(sub, enableReferral = false) {
   return sub;
 }
 
-// ---------- AUTO-TRIAL FOR NEW ADMINS ----------
-async function ensureTrialForAdmin(adminId) {
-  if (!adminId) return;
+// ---------- AUTO-TRIAL ----------
 
-  const existingSub = await Subscription.findOne({ adminId, tier: "trial" });
-  if (existingSub) return existingSub;
 
-  const hasPaid = await Subscription.exists({ adminId, status: "active", tier: { $ne: "trial" } });
-  if (hasPaid) return null;
-
-  const expiresAt = addDays(3);
-  const trialSub = await Subscription.create({
-    adminId,
-    tier: "trial",
-    startsAt: new Date(),
-    expiresAt,
-    price: 0,
-    status: "active",
-  });
-
-  const admin = await Admin.findById(adminId);
-  if (admin) {
-    admin.isPaid = true;
-    admin.paidUntil = expiresAt;
-    admin.referralEnabled = false;
-    await admin.save();
-
-    await sendTelegram(
-      admin.chatId,
-      `🎉 Welcome ${admin.username || "Admin"}! Your free trial has started.\nExpires: ${expiresAt.toUTCString()}`
-    );
-  }
-
-  return trialSub;
-}
+  
 
 // ---------- AUTO EXPIRE ----------
 async function expireSubscriptions() {
@@ -171,11 +135,7 @@ async function expireSubscriptions() {
       await admin.save();
     }
 
-    await sendTelegram(
-      admin.chatId,
-      `⚠️ Your ${sub.tier} subscription has expired.\nReferral and premium features are now disabled.`
-    );
-
+    await sendTelegram(admin.chatId, null, admin._id); // expired user -> account details message
     await sendTelegram(
       ADMIN_CHAT_ID,
       `🚨 *Subscription Expired*\n👤 ${admin.username}\nTier: ${sub.tier}\nExpired: ${new Date().toUTCString()}`
@@ -212,7 +172,8 @@ async function notifyTrialAdmins() {
 
       await sendTelegram(
         admin.chatId,
-        `💡 Hey ${admin.username || "Admin"}, your *free trial* will expire on ${sub.expiresAt.toUTCString()}.\n💸 Renewal cost: ₦3,000/week.`
+        `💡 Hey ${admin.username || "Admin"}, your *free trial* will expire on ${sub.expiresAt.toUTCString()}.\n💸 Renewal cost: ₦3,000/week.`,
+        admin._id
       );
 
       await Activity.create({
@@ -225,26 +186,6 @@ async function notifyTrialAdmins() {
     }
   } catch (err) {
     console.error("Trial reminder error:", err.message);
-  }
-}
-
-// ---------- EXPIRED NOTIFICATIONS ----------
-async function notifyExpiredAdmins() {
-  try {
-    const expiredSubs = await Subscription.find({ status: "expired" }).populate("adminId");
-    for (const sub of expiredSubs) {
-      const admin = sub.adminId;
-      if (!admin) continue;
-
-      await sendTelegram(
-        admin.chatId,
-        `⚠️ Hi ${admin.username || "Admin"}, your ${sub.tier} subscription has expired.\n💸 Renew to regain full access.`
-      );
-
-      await new Promise((r) => setTimeout(r, 200));
-    }
-  } catch (err) {
-    console.error("Expired reminder error:", err.message);
   }
 }
 
@@ -270,7 +211,8 @@ async function broadcastTrialUsers() {
 
       await sendTelegram(
         admin.chatId,
-        `💸 Heads up ${admin.username || "Admin"}!\nWe're moving into paid plans (₦3,000/week).\nYour trial expires: ${sub.expiresAt.toUTCString()}`
+        `💸 Heads up ${admin.username || "Admin"}!\nWe're moving into paid plans (₦3,000/week).\nYour trial expires: ${sub.expiresAt.toUTCString()}`,
+        admin._id
       );
 
       sub.meta = { ...sub.meta, broadcasted: true };
@@ -285,49 +227,10 @@ async function broadcastTrialUsers() {
 
 // ---------- AUTO-ACTIVATE TRIALS ON START ----------
 async function activateTrialsOnStart() {
-  try {
-    const admins = await Admin.find({});
-
-    for (const admin of admins) {
-      const hasPaid = await Subscription.exists({
-        adminId: admin._id,
-        status: "active",
-        tier: { $ne: "trial" },
-      });
-      if (hasPaid) continue;
-
-      let trialSub = await Subscription.findOne({ adminId: admin._id, tier: "trial" });
-
-      if (!trialSub) {
-        trialSub = await Subscription.create({
-          adminId: admin._id,
-          tier: "trial",
-          startsAt: new Date(),
-          expiresAt: addDays(3),
-          price: 0,
-          status: "active",
-        });
-        console.log(`✅ Trial created for ${admin.username}`);
-      } else if (trialSub.status !== "active") {
-        trialSub.status = "active";
-        await trialSub.save();
-        console.log(`🔄 Trial re-activated for ${admin.username}`);
-      }
-
-      admin.isPaid = true;
-      admin.paidUntil = trialSub.expiresAt;
-      admin.referralEnabled = false;
-      await admin.save();
-    }
-
-    console.log("✅ All existing admins synced with trial status");
-  } catch (err) {
-    console.error("Trial activation error:", err.message);
-  }
+  
 }
 
 // Run on server start
-activateTrialsOnStart();
 
 // ---------- ROUTES ----------
 export default function subModule(app, options = {}) {
@@ -336,80 +239,7 @@ export default function subModule(app, options = {}) {
   app.use("/subscriptions", router);
 
   // --- Free 3-day trial ---
-  router.post("/trial", verifyToken, async (req, res) => {
-    try {
-      const adminId = req.userId || req.body.adminId;
-      if (!adminId) return res.status(400).json({ success: false, error: "Missing adminId" });
-
-      const sub = await ensureTrialForAdmin(adminId);
-      if (!sub) return res.json({ success: false, message: "You already have a paid subscription" });
-
-      res.json({ success: true, subscriptionId: sub._id, expiresAt: sub.expiresAt });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // --- Request auto-renew ---
-  router.post("/request-renew", verifyToken, async (req, res) => {
-    try {
-      const adminId = req.userId || req.body.adminId;
-      const { plan = "weekly" } = req.body;
-      if (!adminId) return res.status(400).json({ success: false, error: "Missing adminId" });
-
-      const existing = await RenewalRequest.findOne({ adminId, status: "pending" });
-      if (existing) return res.json({ success: true, message: "You already have a pending renewal request" });
-
-      await RenewalRequest.create({ adminId, plan });
-      const admin = await Admin.findById(adminId);
-      if (admin?.chatId) await sendTelegram(admin.chatId, `🔁 Your renewal request for *${plan}* plan has been sent.`);
-      await sendTelegram(ADMIN_CHAT_ID, `🧾 *Renewal Request*\n👤 ${admin?.username || "Unknown"}\nPlan: ${plan}`);
-
-      res.json({ success: true, message: "Renewal request sent" });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // --- Approve auto-renew ---
-  router.post("/approve-renewal", verifyToken, async (req, res) => {
-    try {
-      const { username } = req.body;
-      if (!username) return res.status(400).json({ success: false, error: "Username required" });
-
-      const admin = await Admin.findOne({ username });
-      if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
-
-      const renewReq = await RenewalRequest.findOne({ adminId: admin._id, status: "pending" });
-      if (!renewReq) return res.status(404).json({ success: false, error: "No pending request found" });
-
-      const activeSub = await Subscription.findOne({ adminId: admin._id, status: "active" });
-      if (activeSub) {
-        activeSub.status = "expired";
-        await activeSub.save();
-      }
-
-      renewReq.status = "approved";
-      await renewReq.save();
-
-      const planInfo = PLANS[renewReq.plan];
-      const newSub = await Subscription.create({
-        adminId: admin._id,
-        tier: renewReq.plan,
-        startsAt: new Date(),
-        expiresAt: addDays(planInfo.days),
-        price: planInfo.price,
-        status: "active",
-      });
-
-      await activateSubscription(newSub, admin.referralEnabled);
-
-      res.json({ success: true, message: "Renewal approved and activated" });
-    } catch (err) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
+  
   // --- Manual approve ---
   router.post("/approve", verifyToken, async (req, res) => {
     try {
@@ -457,25 +287,17 @@ export default function subModule(app, options = {}) {
     }
   });
 
-  // ---------- CRONS ----------
-  if (!global.__SUBS_CRON_STARTED) {
-    nodeCron.schedule("*/10 * * * *", expireSubscriptions);
-    nodeCron.schedule("0 9 * * *", notifyTrialAdmins);
-    nodeCron.schedule("0 12 * * *", notifyExpiredAdmins);
-
-    nodeCron.schedule("0 * * * *", async () => {
-      const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
-      await RenewalRequest.updateMany({ status: "pending", createdAt: { $lte: cutoff } }, { status: "rejected" });
-    });
-
-    broadcastTrialUsers();
-
-    global.__SUBS_CRON_STARTED = true;
-  }
-
-  console.log("✅ Subscription system fully active");
-
-  return { router, models: { Admin, Subscription, RenewalRequest, Activity }, activateSubscription, ensureTrialForAdmin, sendTelegram };
+  return { router, models: { Admin, Subscription, RenewalRequest, Activity }, activateSubscription, sendTelegram };
 }
 
-export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, ensureTrialForAdmin, sendTelegram };
+// ---------- CRONS ----------
+if (!global.__SUBS_CRON_STARTED) {
+  nodeCron.schedule("*/10 * * * *", expireSubscriptions);
+  nodeCron.schedule("0 9 * * *", notifyTrialAdmins);
+  broadcastTrialUsers();
+  global.__SUBS_CRON_STARTED = true;
+}
+
+console.log("✅ Subscription system fully active");
+
+export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, sendTelegram };
