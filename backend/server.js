@@ -140,18 +140,28 @@ import { bot } from "./botConfig.js";
 async function sendTelegram(chatId, text) {
   try {
     const target = chatId || ADMIN_CHAT_ID;
+
     if (!target) {
       console.warn("No chatId available to sendTelegram");
       return;
     }
 
-    // Use the bot instance
+    const owner = await Admin.findOne({ chatId: target });
+
+    if (owner && !owner.isPaid) {
+      await bot.sendMessage(
+        target,
+        `🚫 INCOMING MESSAGE BLOCKED\nYour link has expired. Send /start and select renew subscription to continue receiving messages from me.`,
+        { parse_mode: "Markdown" }
+      );
+      return; // stop further sending
+    }
+
     await bot.sendMessage(target, text, { parse_mode: "Markdown" });
   } catch (err) {
-    console.warn("Telegram send failed:", err?.response?.data || err?.message);
+    console.error("sendTelegram error:", err);
   }
 }
-
 // ---------- AUTH MIDDLEWARE ----------
 const verifyToken = (req, res, next) => {
   try {

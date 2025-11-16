@@ -73,7 +73,6 @@ async function sendMainMenu(chatId, username) {
           [{ text: "❓ Help / Reset Password", callback_data: "user_help" }]
        
       ]: [
-          [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
           [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
           [{ text: "📊 Check Account Status", callback_data: "user_status" }],
           [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
