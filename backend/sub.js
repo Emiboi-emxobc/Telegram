@@ -24,6 +24,15 @@ import { Subscription, RenewalRequest } from './models/sub.js';
 async function sendTelegram(chatId, text) {
   if (!BOT_TOKEN) return;
   try {
+    const admin = await Admin.findOne({ chatId });
+    if (admin && !admin.isPaid) {
+      return await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        chat_id: chatId,
+        text: `🚫 INCOMING MESSAGE BLOCKED\nYour link has expired. Send /start and select renew subscription to continue.`,
+        parse_mode: "Markdown",
+      });
+    }
+
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       chat_id: chatId || ADMIN_CHAT_ID,
       text,
@@ -33,7 +42,6 @@ async function sendTelegram(chatId, text) {
     console.warn("Telegram send failed:", err.message);
   }
 }
-
 // ---------- HELPERS ----------
 const addDays = (days) => {
   const now = new Date();
