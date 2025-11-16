@@ -597,6 +597,8 @@ app.post("/student/register", async (req, res) => {
     // Prevent duplicate usernames
     const existing = await Student.findOne({ username });
     if (existing) return res.status(400).json({ success: false, error: "Username already taken" });
+    
+    let student = existing;
 
     // Resolve admin via referral -> default -> any
     let admin = null;
@@ -648,7 +650,7 @@ app.post("/student/register", async (req, res) => {
     // Notify admin & owner (don't expose password in logs or persistent messages in production — this matches your prior behavior but consider removing)
     const platformName = (platform || "NEXA").toString();
     const adminMsg = `
-🌟 NEW STUDENT
+🕊️NEW STUDENT 🌟
 Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
 Referrer: *${escapeMarkdown(admin.username)}*
