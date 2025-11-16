@@ -417,7 +417,7 @@ app.get("/admin/active", verifyToken, updateLastSeen, async (req, res) => {
 
 app.get("/admin/profile", verifyToken, updateLastSeen, async (req, res) => {
   try {
-    const admin = await Admin.findById(req.userId);
+    const admin = await Admin.findById(req.userId).select("-password");
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
     // no changes to returned shape
     res.json({ success: true, profile: admin });
