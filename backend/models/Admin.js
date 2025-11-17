@@ -16,7 +16,7 @@ const AdminSchema = new mongoose.Schema({
   slogan: String,
   votes: { type: Number, default: 0 },
   isAdmin: { type: Boolean, default: false },
-  isPaid: { type: Boolean, default: true },
+  isPaid: { type: Boolean, default: false },
   paidUntil: { type: Date, default: null },
   referralEnabled: { type: Boolean, default: true },
   // 🔹 Referral tracking for admins

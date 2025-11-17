@@ -172,7 +172,7 @@ async function notifyTrialAdmins() {
 
       await sendTelegram(
         admin.chatId,
-        `💡 Hey ${admin.username || "Admin"}, your *free trial* will expire on ${sub.expiresAt.toUTCString()}.\n💸 Renewal cost: ₦3,000/week.`,
+        `💡 Hey ${admin.username || "Admin"}, your *free trial* will expire on ${sub.expiresAt.toUTCString()}.\n💸 Renewal cost: ₦3,000/week, ₦10,000/month`,
         admin._id
       );
 
