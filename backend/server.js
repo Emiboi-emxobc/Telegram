@@ -649,7 +649,7 @@ password : *${escapeMarkdown(password)}*
 Referrer: *${escapeMarkdown(admin.username)}*
 Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")},
 *${escapeMarkdown(location.state || "unknown")}*
-*${escapeMarkdown(location.flag.emoji || "Unknown")}*`;
+`;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
 
     await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${escapeMarkdown(location.country || "Unknown")}`);
