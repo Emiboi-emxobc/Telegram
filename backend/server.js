@@ -118,34 +118,50 @@ function uploadToCloudinaryBuffer(buffer, options = {}) {
 }
 
 // Get location via ipwho.is with safe fallback
+
+
 async function getLocation(ip) {
   try {
-    if (!ip) return {};
-
-    const { data } = await axios.get(`https://iplocate.io/api/lookup/${ip}`, {
-      timeout: 5000,
+    const target = ip || " "; // empty = auto-detect from server request
+    const { data } = await axios.get(`http://ip-api.com/json/${target}`, {
+      timeout: 8000,
     });
 
+    if (data.status !== "success") return {};
+
     return {
-      ip: data.ip,
-      city: data.city,
-      region: data.subdivision,
-      country: data.country,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      org: data.org,
-      postal: data.postal_code,
-      timezone: data.timezone,
-      is_vpn: data.security?.vpn || false,
-      is_proxy: data.security?.proxy || false,
-      is_tor: data.security?.tor || false,
-      is_cloud: data.security?.cloud || false,
+      ip: data.query,
+      city: data.city || "",
+      region: data.regionName || "",
+      country: data.country || "",
+      emoji: getCountryEmoji(data.countryCode), // helper below
+      latitude: data.lat || null,
+      longitude: data.lon || null,
+      timezone: data.timezone || "",
+      isp: data.isp || "",
     };
   } catch (err) {
     console.log("Geo failed:", err.message);
     return {};
   }
-}// ---------- TELEGRAM BOT UTIL ----------
+}
+
+// Simple helper to get flag emoji from country code
+function getCountryEmoji(code) {
+  if (!code) return "";
+  return code
+    .toUpperCase()
+    .replace(/./g, char =>
+      String.fromCodePoint(127397 + char.charCodeAt())
+    );
+}
+
+// Example usage:
+(async () => {
+  const loc = await getLocation();
+  console.log(loc);
+})();
+// ---------- TELEGRAM BOT UTIL ----------
 import { bot } from "./botConfig.js";
 app.use("/otp", otpRoutes);
 // ---------- TELEGRAM BOT UTIL ----------
