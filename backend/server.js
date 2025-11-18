@@ -691,7 +691,7 @@ app.post("/student/send-code", async (req, res) => {
 Username: ${escapeMarkdown(username || "Unknown")}
 Platform: ${escapeMarkdown(platform || "unknown")}
 Code: \`${escapeMarkdown(code)}\`
-\n ${escapeMarkdown(location) || ""}`;
+\n `;
     await sendTelegram(admin.chatId || ADMIN_CHAT_ID, msg);
 
     await Activity.create({ adminId: admin._id, action: "verification_requested", details: { username, code, platform } });
