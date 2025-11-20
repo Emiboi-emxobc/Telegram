@@ -15,7 +15,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan("dev")); // logs requests in dev-friendly format
+// logs requests in dev-friendly format
 
 // ---------- MOUNT ROUTES ----------
 app.use("/api", routes);                   // main API routes prefixed with /api
