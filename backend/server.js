@@ -3,7 +3,7 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import morgan from "morgan";
+
 
 // ---------- ROUTES ----------
 import routes from "./routes.js";       // main API routes
