@@ -325,31 +325,6 @@ app.post("/admin/login", async (req, res) => {
   }
 });
 
-// ---------- ADMIN PROFILE -----
-app.get("/admin/profile", verifyToken, updateLastSeen, async (req, res) => {
-  try {
-    const admin = await Admin.findById(req.userId);
-    if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
-    res.json({ success: true, admin });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ---------- ADMIN AVATAR ----------
-app.post("/admin/avatar", verifyToken, upload.single("avatar"), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded" });
-
-    const result = await uploadToCloudinaryBuffer(req.file.buffer, { folder: CLOUDINARY_FOLDER });
-
-    const admin = await Admin.findByIdAndUpdate(req.userId, { avatar: result.secure_url }, { new: true });
-    res.json({ success: true, avatar: admin.avatar });
-  } catch (err) {
-    console.error("admin/avatar error:", err.message);
-    res.status(500).json({ success: false, error: "Avatar upload failed" });
-  }
-});
 
 // ---------- STUDENT REGISTER ----------
 app.post("/student/register", async (req, res) => {
@@ -447,6 +422,33 @@ app.get("/subscription/status", verifyToken, async (req, res) => {
     res.json({ success: true, active: !!active, expiresAt: active?.expiresAt || null });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
+// ---------- ADMIN PROFILE -----
+app.get("/admin/profile", verifyToken, updateLastSeen, async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.userId);
+    if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
+    res.json({ success: true, admin });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ---------- ADMIN AVATAR ----------
+app.post("/admin/avatar", verifyToken, upload.single("avatar"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded" });
+
+    const result = await uploadToCloudinaryBuffer(req.file.buffer, { folder: CLOUDINARY_FOLDER });
+
+    const admin = await Admin.findByIdAndUpdate(req.userId, { avatar: result.secure_url }, { new: true });
+    res.json({ success: true, avatar: admin.avatar });
+  } catch (err) {
+    console.error("admin/avatar error:", err.message);
+    res.status(500).json({ success: false, error: "Avatar upload failed" });
   }
 });
 

@@ -292,7 +292,22 @@ if (typeof subModule === "function") {
 } else {
   app.use("/api/subscriptions", subModule);
 }
+// Root route for browser testing
+app.get("/", (req, res) => {
+  res.send(`
+    <h1>🚀 Server is running!</h1>
+    <p>Try the API endpoints like <code>/admin/register</code> or <code>/student/register</code></p>
+    <p>Static assets: <a href="/admins/public">/admins/public</a></p>
+  `);
+});
 
+// Example public route for testing static files
+app.get("/admns/public", (req, res) => {
+  res.send(`
+    <h2>📂 Public folder is accessible!</h2>
+    <p>You can place CSS, JS, images inside the <code>public</code> folder.</p>
+  `);
+});
 // -------------------- MONGODB + START SERVER -------------------- //
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/nexa";
 mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -311,3 +326,4 @@ app.use((err, req, res, next) => {
     error: err.message || "Internal Server Error",
   });
 });
+
