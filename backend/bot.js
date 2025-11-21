@@ -4,13 +4,13 @@ import TelegramBot from "node-telegram-bot-api";
 import mongoose from "mongoose";
 import Activity from "./models/Activity.js";
 import Admin from './models/Admin.js';
-import subModule, {
+import {
   Subscription,
   activateSubscription,
   sendTelegram,
   PLANS,
 } from "./subLogic.js";
-
+import subModule from './sub.js';
 import { bot } from "./botConfig.js";
 import {
   devMainButtons,
