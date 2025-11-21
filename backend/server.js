@@ -4,41 +4,39 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 
-
 // ---------- ROUTES ----------
 import routes from "./routes.js";       // main API routes
 import subModule from "./sub.js";       // subscriptions
-        // Telegram bot (exported as function)
+import "./bot.js";                      // Telegram bot (auto-start)
 
 // ---------- EXPRESS SETUP ----------
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// logs requests in dev-friendly format
 
 // ---------- MOUNT ROUTES ----------
-app.use("/api", routes);                   // main API routes prefixed with /api
+app.use("/admin", routes);
+app.use("/admins", routes);
+app.use("/student", routes);
+app.use("/students", routes);
 
 // ---------- MONGODB ----------
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/nexa";
 
-mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(async () => {
+mongoose.connect(MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true
+})
+  .then(() => {
     console.log("✅ MongoDB connected");
 
-
-
-import "./bot.js"; 
-    // Mount subscription routes after DB ready
+    // Subscription module
     if (typeof subModule === "function") {
-      subModule(app); // call function to attach /subscriptions routes
+      subModule(app);  // attach subscription routes
     } else {
-      app.use("/api/subscriptions", subModule); // if router export
+      app.use("/api/subscriptions", subModule);
     }
-
-    // Initialize Telegram bot after DB ready
-    if (typeof initBot === "function") initBot();
 
     // ---------- START SERVER ----------
     const PORT = process.env.PORT || 7700;
