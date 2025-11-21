@@ -6,11 +6,10 @@ import Activity from "./models/Activity.js";
 import Admin from './models/Admin.js';
 import subModule, {
   Subscription,
-  RenewalRequest,
   activateSubscription,
   sendTelegram,
   PLANS,
-} from "./sub.js";
+} from "./subLogic.js";
 
 import { bot } from "./botConfig.js";
 import {
