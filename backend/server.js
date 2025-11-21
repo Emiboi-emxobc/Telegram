@@ -5,7 +5,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 
 // ---------- ROUTES ----------
-import routes from "./routes.js";       // main API routes
+import "./routes.js";       // main API routes
 import subModule from "./sub.js";       // subscriptions
 import "./bot.js";                      // Telegram bot (auto-start)
 
@@ -16,10 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ---------- MOUNT ROUTES ----------
-app.use("/admin", routes);
-app.use("/admins", routes);
-app.use("/student", routes);
-app.use("/students", routes);
+
 
 // ---------- MONGODB ----------
 const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/nexa";
