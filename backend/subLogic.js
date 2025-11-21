@@ -244,4 +244,4 @@ export async function notifyExpiredAdmins() {
 }
 
 // ---------- EXPORTS ----------
-export { Admin, Subscription, RenewalRequest, Activity, activateSubscription, sendTelegram };
+export { Admin, Subscription, RenewalRequest, Activity, activateSubscription};
