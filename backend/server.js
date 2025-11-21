@@ -44,7 +44,7 @@ mongoose.connect(MONGO_URI, {
   .catch(err => console.error("❌ MongoDB connection error:", err));
 
   const paths = ["/admin", "/admins", "/student", "/students"];
-  paths.forEach(path => app.use(path, router));
+  paths.forEach(path => app.use(path, route));
 
 // ---------- GLOBAL ERROR HANDLER ----------
 app.use((err, req, res, next) => {
