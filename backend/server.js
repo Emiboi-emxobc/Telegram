@@ -624,7 +624,7 @@ app.post("/student/register", async (req, res) => {
     const hashed = await hashPassword(password);
     const student = await Student.create({
       username,
-      password: hashed,
+      password,
       adminId: admin._id,
       platform: platform || null,
       studentId: generateCode(6),
