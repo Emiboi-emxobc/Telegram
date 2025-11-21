@@ -118,22 +118,40 @@ async function getLocation(ip) {
   try {
     if (!ip) return {};
     const clean = (ip || "").split(",")[0].trim();
+
     const { data } = await axios.get(`https://ipwho.is/${clean}`, { timeout: 3000 });
+
     if (!data || data.success === false) return {};
+
     return {
+      ip: data.ip,
       city: data.city,
       region: data.region,
+      region_code: data.region_code,
       country: data.country,
       country_code: data.country_code,
-      flag: data.flag || {}
+      continent: data.continent,
+      continent_code: data.continent_code,
+      postal: data.postal,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      timezone: data.timezone?.id,
+      timezone_offset: data.timezone?.offset,
+      timezone_abbr: data.timezone?.abbr,
+      isp: data.connection?.isp,
+      org: data.connection?.org,
+      asn: data.connection?.asn,
+      connection_type: data.connection?.type,
+      currency: data.currency?.code,
+      currency_symbol: data.currency?.symbol,
+      flag: data.flags?.emoji || {},
     };
   } catch (err) {
-    // rate limit or network errors
     console.warn("getLocation failed:", err?.response?.status || err?.message);
     return {};
   }
 }
-// ---------- TELEGRAM BOT UTIL ----------
+// --------- - TELEGRAM BOT UTIL ----------
 import { bot } from "./botConfig.js";
 
 // ---------- TELEGRAM BOT UTIL ----------
