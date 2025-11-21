@@ -484,7 +484,7 @@ app.get("/admins/public", async (req, res) => {
   try {
     const admins = await Admin.find().select("username firstname lastname avatar referralCode slogan chatId");
     const students = await Student.find({});
-    res.json({ success: true, admins,students });
+    res.json({ success: true, admins });
   } catch (e) {
     console.error("admins/public error:", e && e.message || e);
     res.status(500).json({ success: false, error: "Failed to fetch admins" });
