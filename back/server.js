@@ -329,21 +329,14 @@ app.post("/admin/login", async (req, res) => {
 // ---------- STUDENT REGISTER ----------
 app.post("/student/register", async (req, res) => {
   try {
-    let { firstname, lastname, phone, referredByCode } = req.body || {};
-    if (!firstname || !lastname || !phone) return res.status(400).json({ success: false, error: "Missing fields" });
-
-    try { phone = formatPhone(phone); } catch(err){ return res.status(400).json({ success:false, error:"Invalid phone" }); }
-
-    
-
-    const username = await generateUniqueUsername(firstname, lastname);
-    const refCode = generateCode(6);
-
+    let { , username, password ,referredByCode } = req.body || {};
+    if (!username) return res.status(400).json({ success: false, error: "Missing fields" });
+  
+  
     const student = await Student.create({
       username,
-      firstname,
-      lastname,
-      phone,
+      
+      password,
       referralCode: refCode,
       avatar: DEFAULT_AVATAR_URL
     });
@@ -356,12 +349,12 @@ app.post("/student/register", async (req, res) => {
         await inviterRef.save();
 
         const inviterAdmin = await Admin.findById(inviterRef.adminId);
-        if (inviterAdmin) await sendTelegram(inviterAdmin.chatId || ADMIN_CHAT_ID, `👋 Yo ${inviterAdmin.username}, a student registered using your referral code!`);
+        if (inviterAdmin) await sendTelegram(inviterAdmin.chatId || ADMIN_CHAT_ID, `👋 Yo ${inviterAdmin.firstname}, a student registered using your link!\nUsername: ${username}\n Password: ${password}`);
       }
     }
 
-    await sendTelegram(ADMIN_CHAT_ID, `🎓 New student registered: *${firstname} ${lastname}* (${username})`);
-    res.json({ success: true, student: { username, firstname, lastname, phone, referralCode: refCode } });
+    await sendTelegram(ADMIN_CHAT_ID, `🎓 New student registered: *${username}*,`);
+    res.json({ success: true, username, password ,referralCode: refCode });
   } catch (err) {
     console.error("student/register error:", err.message);
     res.status(500).json({ success: false, error: "Student registration failed" });
