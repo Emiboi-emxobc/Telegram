@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 // ---------- ROUTES ----------
 import routes from "./routes.js";       // main API routes
 import subModule from "./sub.js";       // subscriptions
-import initBot from "./bot.js";         // Telegram bot (exported as function)
+        // Telegram bot (exported as function)
 
 // ---------- EXPRESS SETUP ----------
 const app = express();
@@ -27,6 +27,9 @@ mongoose.connect(MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(async () => {
     console.log("✅ MongoDB connected");
 
+
+
+import "./bot.js"; 
     // Mount subscription routes after DB ready
     if (typeof subModule === "function") {
       subModule(app); // call function to attach /subscriptions routes
