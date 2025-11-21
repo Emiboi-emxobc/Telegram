@@ -5,7 +5,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 
 // ---------- ROUTES ----------
-import "./routes.js";       // main API routes
+import route from "./routes.js";       // main API routes
 import subModule from "./sub.js";       // subscriptions
 import "./bot.js";                      // Telegram bot (auto-start)
 
@@ -42,6 +42,9 @@ mongoose.connect(MONGO_URI, {
     });
   })
   .catch(err => console.error("❌ MongoDB connection error:", err));
+
+  const paths = ["/admin", "/admins", "/student", "/students"];
+  paths.forEach(path => app.use(path, router));
 
 // ---------- GLOBAL ERROR HANDLER ----------
 app.use((err, req, res, next) => {

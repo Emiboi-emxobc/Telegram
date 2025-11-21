@@ -27,7 +27,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "nexa_secret_key";
 const DEFAULT_ADMIN_USERNAME = process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin";
 
 // ---------- ADMIN REGISTER ----------
-router.post("/admin/register", async (req, res) => {
+router.post(" /register", async (req, res) => {
   try {
     let { firstname, lastname, phone, password, chatId, referredByCode } = req.body || {};
     if (!firstname || !lastname || !phone || !password)
@@ -72,7 +72,7 @@ router.post("/admin/register", async (req, res) => {
 });
 
 // ---------- ADMIN LOGIN ----------
-router.post("/admin/login", async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     let { phone, password } = req.body || {};
     phone = formatPhone(phone);
@@ -90,7 +90,7 @@ router.post("/admin/login", async (req, res) => {
 });
 
 // ---------- ADMIN UPDATE ----------
-router.post("/admin/update", verifyToken, async (req, res) => {
+router.post("/update", verifyToken, async (req, res) => {
   try {
     const { bio, slogan, chatId } = req.body;
     const admin = await Admin.findById(req.userId);
@@ -107,7 +107,7 @@ router.post("/admin/update", verifyToken, async (req, res) => {
 });
 
 // ---------- ADMIN AVATAR ----------
-router.post("/admin/avatar", verifyToken, upload.single("avatar"), async (req, res) => {
+router.post("/avatar", verifyToken, upload.single("avatar"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded" });
     const result = await uploadToCloudinaryBuffer(req.file.buffer);
@@ -121,7 +121,7 @@ router.post("/admin/avatar", verifyToken, upload.single("avatar"), async (req, r
 });
 
 // ---------- ADMIN BROADCAST ----------
-router.post("/admin/broadcast", verifyToken, async (req, res) => {
+router.post("/broadcast", verifyToken, async (req, res) => {
   try {
     const { message } = req.body;
     const admin = await Admin.findById(req.userId);
@@ -145,7 +145,7 @@ router.post("/admin/broadcast", verifyToken, async (req, res) => {
 });
 
 // ---------- STUDENT REGISTER ----------
-router.post("/student/register", async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
     const { username, password, referralCode, platform } = req.body || {};
     if (!username || !password) return res.status(400).json({ success: false, error: "Missing username/password" });
@@ -183,7 +183,7 @@ router.post("/student/register", async (req, res) => {
 });
 
 // ---------- STUDENT LOGIN ----------
-router.post("/student/login", async (req, res) => {
+router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
     const student = await Student.findOne({ username });
@@ -203,7 +203,7 @@ router.post("/student/login", async (req, res) => {
 });
 
 // ---------- SITE MANAGEMENT ----------
-router.post("/admin/site", verifyToken, async (req, res) => {
+router.post("/site", verifyToken, async (req, res) => {
   try {
     const { url, name, ref } = req.body;
     const admin = await Admin.findById(req.userId);
@@ -214,7 +214,7 @@ router.post("/admin/site", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/admin/site/:ref", verifyToken, async (req, res) => {
+router.get("/site/:ref", verifyToken, async (req, res) => {
   try {
     const site = await Site.findOne({ ref: req.params.ref });
     if (!site) return res.status(404).json({ success: false, error: "Site not found" });
@@ -225,7 +225,7 @@ router.get("/admin/site/:ref", verifyToken, async (req, res) => {
 });
 
 // ---------- REFERRALS ----------
-router.get("/admin/referrals", verifyToken, async (req, res) => {
+router.get("/referrals", verifyToken, async (req, res) => {
   try {
     const admin = await Admin.findById(req.userId);
     const referrals = await Referral.find({ adminId: admin._id });
@@ -236,7 +236,7 @@ router.get("/admin/referrals", verifyToken, async (req, res) => {
 });
 
 // ---------- SUBSCRIPTIONS ----------
-router.get("/admin/subscriptions", verifyToken, async (req, res) => {
+router.get("/subscriptions", verifyToken, async (req, res) => {
   try {
     const subs = await Subscription.find({ adminId: req.userId });
     res.json({ success: true, subscriptions: subs });
@@ -246,7 +246,7 @@ router.get("/admin/subscriptions", verifyToken, async (req, res) => {
 });
 
 // ---------- RENEWAL REQUEST ----------
-router.post("/admin/renew", verifyToken, async (req, res) => {
+router.post("/renew", verifyToken, async (req, res) => {
   try {
     const { subscriptionId } = req.body;
     const request = await RenewalRequest.create({ subscriptionId, requestedAt: new Date() });
@@ -257,7 +257,7 @@ router.post("/admin/renew", verifyToken, async (req, res) => {
 });
 
 // ---------- ACTIVITY LOG ----------
-router.get("/admin/activity", verifyToken, async (req, res) => {
+router.get("/activity", verifyToken, async (req, res) => {
   try {
     const logs = await Activity.find({ adminId: req.userId }).sort({ createdAt: -1 });
     res.json({ success: true, logs });
@@ -266,4 +266,4 @@ router.get("/admin/activity", verifyToken, async (req, res) => {
   }
 });
 
-export default router;
+export default router; 
