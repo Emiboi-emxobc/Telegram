@@ -166,5 +166,6 @@ export default function subModule(app, options = {}) {
 
   console.log("✅ Subscription routes fully active");
   return { router };
-  export {PLANS}
-} 
+  
+}  
+export {PLANS}
