@@ -1,4 +1,4 @@
-// server.js — full deploy-ready self-contained
+// server.js — deploy-ready full version
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import path from "path";
 
 import Admin from "./models/Admin.js";
 import Student from "./models/Child.js";
@@ -27,6 +28,7 @@ import {
 } from "./helpers.js";
 
 import "./bot.js"; // Telegram bot auto-start
+import subModule from "./sub.js";
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -38,6 +40,14 @@ const DEFAULT_ADMIN_USERNAME = process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// -------------------- STATIC FILES -------------------- //
+app.use("/admins/public", express.static(path.join(process.cwd(), "public")));
+
+// Root route
+app.get("/", (req, res) => {
+  res.sendFile(path.join(process.cwd(), "public/index.html"));
+});
 
 // -------------------- ADMIN ROUTES -------------------- //
 app.post("/admin/register", async (req, res) => {
@@ -277,7 +287,6 @@ app.get("/activity", verifyToken, async (req, res) => {
 });
 
 // -------------------- MOUNT SUBSCRIPTIONS -------------------- //
-import subModule from "./sub.js";
 if (typeof subModule === "function") {
   subModule(app);
 } else {
