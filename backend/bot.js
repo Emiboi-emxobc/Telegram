@@ -46,40 +46,39 @@ function toId(s) {
 // UI helpers
 async function sendMainMenu(chatId, username) {
   try {
-    // developer menu (if dev)
-    if (isDev(chatId)) {
-      const devButtons = [
-        [{ text: "👤 Manage Users", callback_data: "dev_manage_users" }],
+    const adminCheck = await isDev(chatId); // dev/admin check
+    let buttons = [];
+
+    if (adminCheck) {
+      // Admin/Dev menu
+      buttons = [
+        [{ text: "👤 Manage Users", callback_data: "admin_manage" }],
         [{ text: "📊 View Stats", callback_data: "dev_stats" }],
-        [{ text: "💬 Broadcast", callback_data: "dev_broadcast" }],
+        [{ text: "💬 Broadcast Messages", callback_data: "admin_broadcast" }],
+        [{ text: "📝 Pending Requests", callback_data: "admin_pending" }],
+        [{ text: "💳 Verify Payments", callback_data: "admin_verify" }],
+        [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
+        [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
+        [{ text: "📊 Check Account Status", callback_data: "user_status" }],
+        [{ text: "🧑‍🎓 Students", callback_data: "admin_students" }],
+        [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
+        [{ text: "❓ Help / Reset Password", callback_data: "user_help" }],
         [{ text: "🛠️ Dev Commands", callback_data: "dev_commands" }],
       ];
-      return bot.sendMessage(chatId, `👋 Hi Developer! Choose an option:`, {
-        reply_markup: { inline_keyboard: devButtons },
+      await bot.sendMessage(chatId, `👋 Hi Admin/Developer ${username || ""}! Choose an option:`, {
+        reply_markup: { inline_keyboard: buttons },
       });
+      return;
     }
 
-    const adminCheck = await isDev(chatId);
-    const buttons = adminCheck
-      ? [
-          [{ text: "📝 Pending Requests", callback_data: "admin_pending" }],
-          [{ text: "💳 Verify Payments", callback_data: "admin_verify" }],
-          [{ text: "📦 Broadcast Messages", callback_data: "admin_broadcast" }],
-          [{ text: "⚙️ Manage Users", callback_data: "admin_manage" }],
-          [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
-          [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
-          [{ text: "📊 Check Account Status", callback_data: "user_status" }],
-          [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
-          [{ text: "❓ Help / Reset Password", callback_data: "user_help" }]
-       
-      ]: [
-          [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
-          [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
-          [{ text: "📊 Check Account Status", callback_data: "user_status" }],
-          [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
-          [{ text: "❓ Help / Reset Password", callback_data: "user_help" }]
-          ]
-        ;
+    // Regular user menu
+    buttons = [
+      [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
+      [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
+      [{ text: "📊 Check Account Status", callback_data: "user_status" }],
+      [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
+      [{ text: "❓ Help / Reset Password", callback_data: "user_help" }],
+    ];
 
     await bot.sendMessage(chatId, `👋 Hi ${username || "there"}! Choose an option:`, {
       reply_markup: { inline_keyboard: buttons },
@@ -88,7 +87,6 @@ async function sendMainMenu(chatId, username) {
     console.error("sendMainMenu failed:", err);
   }
 }
-
 // ---------- Unified CALLBACK QUERY handler (buttons) ----------
 bot.on("callback_query", async (q) => {
   const { id, data, message } = q;
