@@ -265,5 +265,3 @@ router.get("/activity", verifyToken, async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
-
-export default router; 
