@@ -73,7 +73,7 @@ async function sendMainMenu(chatId, username) {
 
     // Regular user menu
     buttons = [
-      [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
+     // [{ text: "🎉 Start Trial", callback_data: "user_trial" }],
       [{ text: "🔁 Renew Subscription", callback_data: "user_renew" }],
       [{ text: "📊 Check Account Status", callback_data: "user_status" }],
       [{ text: "📝 Signup / Instructions", callback_data: "user_signup" }],
@@ -86,7 +86,7 @@ async function sendMainMenu(chatId, username) {
   } catch (err) {
     console.error("sendMainMenu failed:", err);
   }
-}
+} 
 // ---------- Unified CALLBACK QUERY handler (buttons) ----------
 bot.on("callback_query", async (q) => {
   const { id, data, message } = q;
