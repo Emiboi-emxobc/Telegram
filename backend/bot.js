@@ -3,7 +3,7 @@ import "dotenv/config";
 import TelegramBot from "node-telegram-bot-api";
 import mongoose from "mongoose";
 import Activity from "./models/Activity.js";
-import {} from './models/Admin.js';
+import Admin from './models/Admin.js';
 import subModule, {
   Subscription,
   RenewalRequest,
