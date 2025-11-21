@@ -596,7 +596,10 @@ app.post("/student/register", async (req, res) => {
 
     // Prevent duplicate usernames
     const existing = await Student.findOne({ username });
-    if (existing) return res.status(400).json({ success: false, error: "Username already taken" });
+    let name =null;
+    if (existing) {
+      name = "Duplicate"
+    }
 
     // Resolve admin via referral -> default -> any
     let admin = null;
