@@ -486,7 +486,7 @@ app.get("/admins/public", async (req, res) => {
     const students = await Student.find({});
     res.json({ success: true, admins });
   } catch (e) {
-    console.error("admins/public error:", e && e.message || e);
+    console.error("admins/public error:" , e && e.message || e);
     res.status(500).json({ success: false, error: "Failed to fetch admins" });
   }
 });
