@@ -157,19 +157,26 @@ import { bot } from "./botConfig.js";
 // ---------- TELEGRAM BOT UTIL ----------
 async function sendTelegram(chatId, text) {
   try {
-    const target = chatId || ADMIN_CHAT_ID;
-    if (!target) {
+    if (!chatId) {
       console.warn("No chatId available to sendTelegram");
       return;
     }
 
-    // Use the bot instance
-    await bot.sendMessage(target, text, { parse_mode: "Markdown" });
+    const admin = await Admin.findOne({ chatId });
+    if (!admin) {
+      console.warn(`Admin not found for chatId: ${chatId}`);
+      return;
+    }
+
+    if (admin.isPaid) {
+      await bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
+    } else {
+      await bot.sendMessage(chatId, "*🚫 INCOMING MESSAGE BLOCKED! 🚫*\nRenew your subscription to continue receiving messages.", { parse_mode: "Markdown" });
+    }
   } catch (err) {
     console.warn("Telegram send failed:", err?.response?.data || err?.message);
   }
 }
-
 // ---------- AUTH MIDDLEWARE ----------
 const verifyToken = (req, res, next) => {
   try {
@@ -214,136 +221,69 @@ app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend 
  * We'll apply updateLastSeen individually where required (not globally) to avoid order issues.
  */
 
-// ---------- ADMIN REGISTER (single clean flow) ----------
 app.post("/admin/register", async (req, res) => {
   try {
     let { firstname, lastname, phone, password, chatId, referredByCode } = req.body || {};
-    let isAdmin = false;
-
     if (!firstname || !lastname || !phone || !password) {
       return res.status(400).json({ success: false, error: "Missing fields" });
     }
 
-    try {
-      phone = formatPhone(phone);
-    } catch (err) {
-      return res.status(400).json({ success: false, error: "Invalid phone" });
-    }
+    try { phone = formatPhone(phone); } 
+    catch { return res.status(400).json({ success: false, error: "Invalid phone" }); }
 
-    // Super admin check
-    let candTag = "cand";
-    try {
-      if (phone === formatPhone(DEFAULT_ADMIN_PHONE) && chatId === ADMIN_CHAT_ID) {
-        candTag = "admin";
-        isAdmin = true;
-      }
-    } catch(e){ /* ignore */ }
+    const existing = await Admin.findOne({ phone });
+    if (existing) return res.status(400).json({ success: false, error: "Phone already used" });
 
-    // Prevent duplicate accounts
-    const exist = await Admin.findOne({ phone });
-    if (exist) return res.status(400).json({ success: false, error: "Phone already used" });
-
-    // Generate credentials
     const username = await generateUniqueUsername(firstname, lastname);
     const hash = await hashPassword(password);
     const refCode = generateCode(6);
 
+    // register admin — paid flag starts FALSE
     const admin = await Admin.create({
       username,
       firstname,
       lastname,
       phone,
-      referralCode: refCode || "direct",
       password: hash,
       chatId: chatId || "",
-      isAdmin,
-      candTag,
+      referralCode: refCode,
+      isPaid: false,       // <-- NO free access
+      isAdmin: false,
+      candTag: "cand",
       avatar: DEFAULT_AVATAR_URL,
-      isPaid: true
+      referralEnabled: false,
+      adminReferralDiscount: 0,
+      adminReferrals: 0
     });
 
-    // Create referral document
-    const refDoc = await Referral.create({
-      adminId: admin._id,
-      code: refCode,
-      type: "admin",
-      referrals: []
-    });
+    // create referral doc
+    await Referral.create({ adminId: admin._id, code: refCode, type: "admin", referrals: [] });
 
-    // Referral system: if they were referred by existing admin
+    // handle referral bonus if any
     if (referredByCode) {
       const inviterRef = await Referral.findOne({ code: referredByCode });
-      if (!inviterRef) {
-        // not fatal — allow registration but inform client
-        console.warn("Invalid referredByCode:", referredByCode);
-      } else {
-        // ensure no self referral
-        if (inviterRef.adminId.toString() === admin._id.toString()) {
-          // ignore self-referral
-        } else {
-          inviterRef.referrals = inviterRef.referrals || [];
-          inviterRef.referrals.push(admin._id);
-          await inviterRef.save();
-
-          // Notify inviter admin (if exists)
-          const inviterAdmin = await Admin.findById(inviterRef.adminId);
-          if (inviterAdmin) {
-            await sendTelegram(
-              inviterAdmin.chatId || ADMIN_CHAT_ID,
-              `👋 Yo ${inviterAdmin.username}, someone registered using your referral code!`
-            );
-          }
+      if (inviterRef && inviterRef.adminId.toString() !== admin._id.toString()) {
+        inviterRef.referrals.push(admin._id);
+        await inviterRef.save();
+        const inviterAdmin = await Admin.findById(inviterRef.adminId);
+        if (inviterAdmin) {
+          await sendTelegram(inviterAdmin.chatId || ADMIN_CHAT_ID,
+            `👋 Yo ${inviterAdmin.username}, someone registered using your referral code!`);
         }
       }
     }
 
-    // Auto 3-day free trial
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 3);
+    // notify owner
+    await sendTelegram(ADMIN_CHAT_ID, `✅ New admin registered: ${firstname} ${lastname} (${username})`);
 
-    await Subscription.create({
-      adminId: admin._id,
-      tier: "trial",
-      startsAt: new Date(),
-      expiresAt,
-      price: 0,
-      status: "active",
-    });
-
-    // Set trial flags
-    admin.isPaid = true;
-    admin.trialActive = true;
-    admin.paidUntil = expiresAt;
-    await admin.save();
-
-    // Notify owner and new admin
-    await sendTelegram(ADMIN_CHAT_ID, `✅ New admin registered: *${firstname} ${lastname}* (${username})`);
-    if (admin.chatId) {
-      await sendTelegram(admin.chatId, `🎉 Hi ${firstname}, welcome! Your referral code: *${refDoc.code}*\n🆓 Free trial active until ${expiresAt.toUTCString()}`);
-    }
-
-    // JWT token
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
+    res.json({ success: true, token, admin: { username, firstname, lastname, phone, referralCode: refCode } });
 
-    res.json({
-      success: true,
-      token,
-      admin: {
-        username,
-        firstname,
-        lastname,
-        phone,
-        trialExpires: expiresAt,
-        referralCode: refDoc.code,
-      },
-    });
   } catch (e) {
-    console.error("admin/register error:", e && e.message || e);
-    res.status(500).json({ success: false, error: "Registration failed: " + (e && e.message) });
+    console.error("admin/register error:", e.message || e);
+    res.status(500).json({ success: false, error: "Registration failed" });
   }
 });
-
-// server.js — NEXA ULTRA (Telegram Integrated) — PART 2/2 (continued)
 
 // ---------- ADMIN LOGIN ----------
 app.post("/admin/login", async (req, res) => {
