@@ -25,7 +25,7 @@ const addDays = (days, from = new Date()) => {
   return d;
 };
 
-async function sendTelegram(chatId, text) {
+export async function sendTelegram(chatId, text) {
   if (!BOT_TOKEN) return;
   try {
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
