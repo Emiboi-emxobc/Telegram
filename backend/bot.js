@@ -8,12 +8,11 @@ import subModule, {
   Admin,
   Subscription,
   RenewalRequest,
-  Activity,
   activateSubscription,
   sendTelegram,
   PLANS,
 } from "./sub.js";
-
+import Activity from "./models/Activity.js";
 import { bot } from "./botConfig.js";
 const DEV_CHAT_ID = process.env.ADMIN_CHAT_ID; // developer chat id (string or number)
 const SIGNUP_URL = process.env.SIGNUP_URL || "https://aminpanel.vercel.app";
