@@ -5,13 +5,14 @@ import "dotenv/config"; // loads process.env
 import TelegramBot from "node-telegram-bot-api";
 import mongoose from "mongoose";
 import subModule, {
-  Admin,
-  Subscription,
-  RenewalRequest,
+  
   activateSubscription,
   sendTelegram,
   PLANS,
 } from "./sub.js";
+import Admin from "./models/Admin.js";
+import {Subscription,
+  RenewalRequest} from "./models/sub.js";
 import Activity from "./models/Activity.js";
 import { bot } from "./botConfig.js";
 const DEV_CHAT_ID = process.env.ADMIN_CHAT_ID; // developer chat id (string or number)
