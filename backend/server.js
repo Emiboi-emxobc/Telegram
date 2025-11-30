@@ -673,6 +673,43 @@ app.get("/admin/activity", verifyToken, updateLastSeen, async (req, res) => {
   }
 });
 
+
+app.delete("/admin/delete-user", async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number required.",
+      });
+    }
+
+    const user = await Admin.findOneAndDelete({ phone });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "User deleted successfully.",
+      data: user
+    });
+
+  } catch (err) {
+    console.error("Delete user error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error.",
+    });
+  }
+});
+
+
 // ---------- GET ADMIN BY USERNAME (debug) ----------
 app.get("/admin/by-username/:username", async (req, res) => {
   try {
