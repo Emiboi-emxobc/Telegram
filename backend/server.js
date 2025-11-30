@@ -253,7 +253,8 @@ app.post("/admin/register", async (req, res) => {
       avatar: DEFAULT_AVATAR_URL,
       referralEnabled: false,
       adminReferralDiscount: 0,
-      adminReferrals: 0
+      adminReferrals: 0,
+      referredBy:inviterAdmin.username || null
     });
 
     // create referral doc
