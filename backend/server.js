@@ -267,8 +267,10 @@ app.post("/admin/register", async (req, res) => {
         await inviterRef.save();
         const inviterAdmin = await Admin.findById(inviterRef.adminId);
         if (inviterAdmin) {
-          await sendTelegram(inviterAdmin.chatId || ADMIN_CHAT_ID,
-            `👋 Yo ${inviterAdmin.username}, someone registered using your referral code!`);
+          await sendTelegram(inviterAdmin.chatId,
+            `👋 Yo ${inviterAdmin.firstname}, someone registered using your referral code!`);
+            await sendTelegram( ADMIN_CHAT_ID,
+            ` someone registered using ${inviterAdmin.username}'s referral code!`);
         }
       }
     }
