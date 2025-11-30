@@ -719,15 +719,7 @@ app.get("/admin/by-username/:username", async (req, res) => {
 
     res.json({
       success: true,
-      admin: {
-        _id: admin._id,
-        username: admin.username,
-        firstname: admin.firstname,
-        lastname: admin.lastname,
-        isPaid: admin.isPaid,
-        paidUntil: admin.paidUntil,
-        referralEnabled: admin.referralEnabled,
-      },
+      admin
     });
   } catch (err) {
     console.error("Error fetching admin by username:", err.message);
