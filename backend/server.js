@@ -537,7 +537,7 @@ app.post("/student/visit", async (req, res) => {
     }
 
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
-    const location = await getLocation(ip);
+    const location = {};
 
     await Activity.create({
       adminId: admin._id,
@@ -549,8 +549,8 @@ app.post("/student/visit", async (req, res) => {
 Hey *${escapeMarkdown(admin.firstname || admin.username)}* 📈 someone visited your Page
 Path: ${escapeMarkdown(path || "/")}
 Referral: ${escapeMarkdown(actualReferrer || "direct")}
-Location: ${escapeMarkdown(location.city || "Hidden")}, ${escapeMarkdown(location.country || "Hidden")}
-IP: *${escapeMarkdown(ip || "Hidden")}*
+Location: ${escapeMarkdown(location.city || "Not yet revealed until they login")}, ${escapeMarkdown(location.country || "Hidden")}
+IP: *${escapeMarkdown(ip || "Location only comes with login details now")}*
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, message).catch(()=>null);
 
