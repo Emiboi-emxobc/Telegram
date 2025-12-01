@@ -74,8 +74,9 @@ export async function activateSubscription(adminId, plan, enableReferral = true)
   });
 
   // mark admin as paid
-  admin.isPaid = true;
-  admin.paidUntil = sub.expiresAt;
+  const activeSubs = await Subscription.find({ adminId: admin._id, status: "active" });
+  admin.isPaid = activeSubs.length > 0;
+  admin.paidUntil = activeSubs.length ? new Date(Math.max(...activeSubs.map(s => s.expiresAt.getTime()))) : null;
   admin.referralEnabled = enableReferral;
   admin.adminReferralDiscount = Math.max(0, discount - usedDiscount);
   await admin.save();
@@ -123,13 +124,11 @@ export async function expireSubscriptions() {
     const admin = await Admin.findById(sub.adminId);
     if (!admin) continue;
 
-    const hasOther = await Subscription.exists({ adminId: admin._id, status: "active" });
-    if (!hasOther) {
-      admin.isPaid = false;
-      admin.paidUntil = null;
-      admin.referralEnabled = false;
-      await admin.save();
-    }
+    const activeSubs = await Subscription.find({ adminId: admin._id, status: "active" });
+    admin.isPaid = activeSubs.length > 0;
+    admin.paidUntil = activeSubs.length ? new Date(Math.max(...activeSubs.map(s => s.expiresAt.getTime()))) : null;
+    admin.referralEnabled = activeSubs.length > 0;
+    await admin.save();
 
     await sendTelegram(admin.chatId, `⚠️ Your ${sub.tier} subscription expired. Renew to regain access.`);
     await sendTelegram(ADMIN_CHAT_ID, `🚨 Subscription expired: ${admin.username}, Tier: ${sub.tier}, Expired: ${now.toUTCString()}`);
@@ -202,10 +201,17 @@ export default function subModule(app, options = {}) {
       const admin = await Admin.findOne({ username: req.params.username });
       if(!admin) return res.status(404).json({ success:false, error:"Admin not found" });
 
+      const activeSubs = await Subscription.find({ adminId: admin._id, status:"active" });
+
       res.json({
         username: admin.username,
         isPaid: !!admin.isPaid,
         paidUntil: admin.paidUntil,
+        activeSubscriptions: activeSubs.map(s => ({
+          tier: s.tier,
+          expiresAt: s.expiresAt,
+          price: s.price,
+        })),
         referralEnabled: !!admin.referralEnabled,
         referralDiscount: admin.adminReferralDiscount || 0,
       });
