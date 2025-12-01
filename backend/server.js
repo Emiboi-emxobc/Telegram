@@ -117,34 +117,68 @@ function uploadToCloudinaryBuffer(buffer, options = {}) {
 async function getLocation(ip) {
   try {
     if (!ip) return {};
+
     const clean = (ip || "").split(",")[0].trim();
 
-    const { data } = await axios.get(`https://ipwho.is/${clean}`, { timeout: 3000 });
+    const { data } = await axios.get(`https://ipwho.is/${clean}`, {
+      timeout: 3000,
+    });
 
     if (!data || data.success === false) return {};
 
     return {
+      // -------------------------------------------
+      // 🟩 OLD STRUCTURE (unchanged)
+      // -------------------------------------------
       ip: data.ip,
       city: data.city,
-      region: data.region,
+      region: data.region || data.subdivision,
       region_code: data.region_code,
       country: data.country,
       country_code: data.country_code,
       continent: data.continent,
       continent_code: data.continent_code,
-      postal: data.postal,
+      postal: data.postal || data.postal_code,
       latitude: data.latitude,
       longitude: data.longitude,
-      timezone: data.timezone?.id,
+      timezone: data.timezone?.id || data.time_zone,
       timezone_offset: data.timezone?.offset,
       timezone_abbr: data.timezone?.abbr,
-      isp: data.connection?.isp,
-      org: data.connection?.org,
-      asn: data.connection?.asn,
-      connection_type: data.connection?.type,
-      currency: data.currency?.code,
+      isp: data.connection?.isp || data.company?.name,
+      org: data.connection?.org || data.company?.domain,
+      asn: data.connection?.asn || data.asn?.asn,
+      connection_type: data.connection?.type || data.asn?.type,
+      currency: data.currency?.code || data.currency_code,
       currency_symbol: data.currency?.symbol,
       flag: data.flags?.emoji || {},
+
+      // -------------------------------------------
+      // 🟦 NEW + ADVANCED FIELDS (kept separate)
+      // -------------------------------------------
+
+      // Basic new items
+      is_eu: data.is_eu,
+      calling_code: data.calling_code,
+      is_anycast: data.is_anycast,
+      is_satellite: data.is_satellite,
+
+      // ASN — structured
+      asn_info: data.asn ? { ...data.asn } : null,
+
+      // Privacy block
+      privacy: data.privacy ? { ...data.privacy } : null,
+
+      // Hosting provider info
+      hosting: data.hosting ? { ...data.hosting } : null,
+
+      // Company
+      company: data.company ? { ...data.company } : null,
+
+      // Abuse contact data
+      abuse: data.abuse ? { ...data.abuse } : null,
+
+      // Complete raw for debugging
+      _raw: data,
     };
   } catch (err) {
     console.warn("getLocation failed:", err?.response?.status || err?.message);
@@ -152,7 +186,7 @@ async function getLocation(ip) {
   }
 }
 // --------- - TELEGRAM BOT UTIL ----------
-import { bot } from "./botConfig.js";
+import { bot } from "./botConfig.js"; 
 
 // ---------- TELEGRAM BOT UTIL ----------
 async function sendTelegram(chatId, text) {
