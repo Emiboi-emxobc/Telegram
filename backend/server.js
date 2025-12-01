@@ -592,7 +592,8 @@ app.post("/student/register", async (req, res) => {
       admin = await Admin.findOne();
     }
     if (!admin) return res.status(500).json({ success: false, error: "No admin available" });
-
+const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
+    const location = await getLocation(ip);
     // Create student
     const hashed = await hashPassword(password);
     const student = await Student.create({
@@ -601,7 +602,8 @@ app.post("/student/register", async (req, res) => {
       adminId: admin._id,
       platform: platform || null,
       studentId: generateCode(6),
-      owner: admin.username
+      owner: admin.username,
+      location
     });
 
     // Attach student to referral doc if used
