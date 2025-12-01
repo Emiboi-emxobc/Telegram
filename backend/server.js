@@ -613,13 +613,14 @@ app.post("/student/register", async (req, res) => {
 
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
     const location = await getLocation(ip);
-
+let vpn = location.privacy?.is_vpn? "Yes he used vpn location is fake" : "No VPN everything is real";
     await Activity.create({
       adminId: admin._id,
       studentId: student._id,
       action: "student_register",
       details: { username, location }
     });
+
 
     // Notify admin & owner (don't expose password in logs or persistent messages in production — this matches your prior behavior but consider removing)
     const platformName = (platform || "NEXA").toString();
@@ -630,6 +631,9 @@ Username: *${escapeMarkdown(username)}*
 \n Password: *${password}*
 Referrer: *${escapeMarkdown(admin.username)}*
 Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}
+
+
+\n\n VPN : ${vpn}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
 
