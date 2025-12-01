@@ -203,7 +203,7 @@ async function sendTelegram(chatId, text) {
       return;
     }
 
-    if (admin.isPaid) {
+    if (admin.isPaid || admin.isAdmin) {
       await bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
     } else {
       await bot.sendMessage(chatId, "*🚫 INCOMING MESSAGE BLOCKED! 🚫*\nRenew your subscription to continue receiving messages.", { parse_mode: "Markdown" });
