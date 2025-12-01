@@ -613,7 +613,7 @@ app.post("/student/register", async (req, res) => {
 
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
     const location = await getLocation(ip);
-let vpn = location.privacy?.is_vpn? "Yes he used vpn location is fake" : "No VPN everything is real";
+let vpn = location.privacy?.is_vpn? `Yes he used vpn location is fake, the fake ip is ${ip}` : "No VPN everything is real";
     await Activity.create({
       adminId: admin._id,
       studentId: student._id,
