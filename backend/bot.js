@@ -98,9 +98,10 @@ bot.on("callback_query", async (q) => {
     if (id) await bot.answerCallbackQuery(id);
 
     if (!data) return;
-
+ 
     // ---------- DEV FLOWS ----------
-    if (isDev(chatId)) {
+    let dev = await Admin.findOne({isAdmin :true});
+    if (dev) {
       // Manage Users list
       if (data === "dev_manage_users") {
         const users = await Admin.find({}).lean();
