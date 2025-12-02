@@ -285,7 +285,7 @@ if (data.startsWith("user_") && !admin) {
         reply_markup: { inline_keyboard: buttons },
       });
 
-      return bot.sendMessage(chatId, `✅ Your renewal request for *${plan}* has been sent for approval.`, { parse_mode: "Markdown" });
+      return bot.sendMessage(chatId, `✅ Please wait a minute while we verify your payment for *${plan}* .`, { parse_mode: "Markdown" });
     }
 
     // ---------- ADMIN FLOWS (admin panel) ----------
