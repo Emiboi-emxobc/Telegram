@@ -268,7 +268,7 @@ if (data.startsWith("user_") && !admin) {
           callback_data: `plan_${plan}`,
         },
       ]);
-      return bot.sendMessage(chatId, `💸 Choose a plan to request renewal:`, { reply_markup: { inline_keyboard: planButtons } });
+      return bot.sendMessage(chatId, `Account number: 9122154145 \n account name : Chukwuemeka Emmanuel Ileka \n bank: Monie point \n \n💸 Choose a plan to request renewal:`, { reply_markup: { inline_keyboard: planButtons } });
     }
 
     // user clicked specific plan (plan_weekly etc.)
