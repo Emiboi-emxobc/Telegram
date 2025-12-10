@@ -3,12 +3,13 @@ import TelegramBot from "node-telegram-bot-api";
 import mongoose from "mongoose";
 
 import { handleCallbackQuery, handleMessage } from "./buttons.js";
-import { Admin, Subscription, RenewalRequest } from "./models/index.js"; // adjust paths
+import  Admin from "./models/Admin.js"; // adjust paths
+import {Subscription, RenewalRequest } from './models/sub.js';
 import { activateSubscription, sendTelegram, PLANS } from "./sub.js";
 
 // ----- CONFIG -----
 const TOKEN = process.env.BOT_TOKEN;
-export const bot = new TelegramBot(TOKEN, { polling: true });
+import {bot} from './botConfig.js';
 
 // Conversation state map
 bot.convoState = new Map();
