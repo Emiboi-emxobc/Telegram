@@ -529,8 +529,8 @@ bot.on("message", async (msg) => {
           status: "active",
         });
 
-        await activateSubscription(sub, user.referralEnabled);
-        await bot.sendMessage(user.chatId, `🎁 You’ve been granted a ${plan} subscription! Expires: ${expiresAt.toUTCString()}`);
+        await activateSubscription(user._id,plan, user.referralEnabled);
+        await bot.sendMessage(user.chatId, `🎁 You’ve been granted a ${plan} subscription by Emiboi! Expires: ${expiresAt.toUTCString()}`);
         return bot.sendMessage(chatId, `✅ ${user.username} upgraded to ${plan} successfully.`);
       }
 

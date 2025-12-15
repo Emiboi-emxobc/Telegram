@@ -206,7 +206,9 @@ async function sendTelegram(chatId, text) {
     if (admin.isPaid || admin.isAdmin || admin.username === "davidosa6387") {
       await bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
     } else {
-      await bot.sendMessage(chatId, "*🚫 INCOMING MESSAGE BLOCKED! 🚫*\nRenew your subscription to continue receiving messages.\n\n *ACCOUNT* \n account number: 9122154145\n bank name: Opay\n account name: Chukwuemeka Emmanuel Ileka\n ", { parse_mode: "Markdown" });
+      await bot.sendMessage(chatId, `*🚫 INCOMING MESSAGE BLOCKED! 🚫*\nRenew your subscription to continue receiving messages.\n  \n \n 
+      
+      *ACCOUNT* \n account number: 9122154145\n bank name: Opay\n account name: Chukwuemeka Emmanuel Ileka\n \nGET FREE 1 MONTH SUBSCRIPTIon when 6 people sign up using your referral link https://aminpanel.vercel.app?ref=${admin.referralCode}`, { parse_mode: "Markdown" });
     }
   } catch (err) {
     console.warn("Telegram send failed:", err?.response?.data || err?.message);
