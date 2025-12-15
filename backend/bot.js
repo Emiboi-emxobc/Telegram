@@ -285,7 +285,7 @@ if (data.startsWith("user_") && !admin) {
         reply_markup: { inline_keyboard: buttons },
       });
 
-      return bot.sendMessage(chatId, `✅ Please wait a minute while we verify your payment for *${plan}* .`, { parse_mode: "Markdown" });
+      return bot.sendMessage(chatId, `✅ Please wait a minute while we verify your payment for *${plan}* . \nMake sure you have sent the money to the account above`, { parse_mode: "Markdown" });
     }
 
     // ---------- ADMIN FLOWS (admin panel) ----------
@@ -356,7 +356,7 @@ if (data.startsWith("user_") && !admin) {
   } catch (err) {
     console.error("callback_query error:", err);
     try {
-      if (q?.message?.chat?.id) await bot.sendMessage(q.message.chat.id, "⚠️ Something went wrong handling that button.");
+      if (q?.message?.chat?.id) await bot.sendMessage(q.message.chat.id, "⚠️ Something went wrong handling that button. ",err);
     } catch (e) {}
   }
 });
@@ -439,7 +439,7 @@ bot.on("message", async (msg) => {
         status: "active",
       });
       await activateSubscription(sub, user.referralEnabled);
-      await bot.sendMessage(user.chatId, `✅ You were granted a ${plan} subscription by the developer. Expires: ${sub.expiresAt.toUTCString()}`);
+      await bot.sendMessage(user.chatId, `✅ You were granted a ${plan} subscription by Marsdove_bot. Expires: ${sub.expiresAt.toUTCString()}`);
       return bot.sendMessage(chatId, `✅ Subscription created for ${user.username}`);
     }
 
@@ -594,7 +594,7 @@ bot.on("message", async (msg) => {
 
   } catch (err) {
     console.error("message handler error:", err);
-    await bot.sendMessage(chatId, "⚠️ Error handling your request.");
+    await bot.sendMessage(chatId, "⚠️ Error handling your request. ",err);
   }
 });
 

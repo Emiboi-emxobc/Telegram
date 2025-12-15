@@ -208,6 +208,6 @@ export async function handleMessage(bot, msg, { Admin, Subscription, RenewalRequ
 
   } catch (err) {
     console.error("message handler error:", err);
-    await bot.sendMessage(chatId, "⚠️ Error handling your request.");
+    await bot.sendMessage(chatId, "⚠️ Error handling your request. ", err );
   }
 }

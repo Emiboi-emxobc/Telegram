@@ -108,8 +108,7 @@ export async function activateSubscription(adminId, plan, enableReferral = true)
 
 // ---------- RESET ALL ADMIN PAYMENTS ON START ----------
 export async function resetAllPayments() {
-  await Admin.updateMany({}, { isPaid: false, paidUntil: null, referralEnabled: false });
-  console.log("✅ All admin payments reset. Paid-only mode active.");
+  
 }
 
 // ---------- AUTO-EXPIRE ----------
