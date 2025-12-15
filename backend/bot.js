@@ -101,7 +101,7 @@ bot.on("callback_query", async (q) => {
  
     // ---------- DEV FLOWS ----------
     let dev = await Admin.findOne({isAdmin :true});
-    if (dev) {
+    if (isDev || adminCheck || dev) {
       // Manage Users list
       if (data === "dev_manage_users") {
         const users = await Admin.find({}).lean();
