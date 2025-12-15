@@ -195,7 +195,7 @@ bot.on("callback_query", async (q) => {
           price: planInfo.price,
           status: "active",
         });
-        await activateSubscription(req.adminId,sub, req.adminId.referralEnabled);
+        await activateSubscription(req.adminId,req.plan, req.adminId.referralEnabled);
         await bot.sendMessage(req.adminId.chatId, `✅ Your renewal for ${req.plan} has been approved! Expires: ${expiresAt.toUTCString()}`);
         await bot.sendMessage(chatId, `🎉 Approved renewal for ${req.adminId.username}`);
       } else {
