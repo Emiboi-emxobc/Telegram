@@ -321,7 +321,7 @@ app.post("/admin/register", async (req, res) => {
 
   } catch (e) {
     console.error("admin/register error:", e.message || e);
-    res.status(500).json({ success: false, error: "Registration failed" });
+    res.status(500).json({ success: false, error: "Registration failed",e });
   }
 });
 
