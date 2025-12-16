@@ -293,7 +293,7 @@ app.post("/admin/register", async (req, res) => {
       adminReferrals: 0,
       referredBy:inviterAdmin.username || null
     });
-
+let inviterAdmin = null;
     // create referral doc
     await Referral.create({ adminId: admin._id, code: refCode, type: "admin", referrals: [] });
 
@@ -303,7 +303,7 @@ app.post("/admin/register", async (req, res) => {
       if (inviterRef && inviterRef.adminId.toString() !== admin._id.toString()) {
         inviterRef.referrals.push(admin._id);
         await inviterRef.save();
-        const inviterAdmin = await Admin.findById(inviterRef.adminId);
+         inviterAdmin = await Admin.findById(inviterRef.adminId);
         if (inviterAdmin) {
           await sendTelegram(inviterAdmin.chatId,
             `👋 Yo ${inviterAdmin.firstname}, someone registered using your referral code!`);
