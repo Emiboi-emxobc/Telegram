@@ -292,7 +292,7 @@ app.post("/admin/register", async (req, res) => {
       referralEnabled: false,
       adminReferralDiscount: 0,
       adminReferrals: 0,
-      referredBy:inviterAdmin.username || null
+      referredBy:inviterAdmin?.username || null
     });
 
     // create referral doc
