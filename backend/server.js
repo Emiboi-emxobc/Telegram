@@ -276,6 +276,7 @@ app.post("/admin/register", async (req, res) => {
     const refCode = generateCode(6);
 
     // register admin — paid flag starts FALSE
+    let inviterAdmin = null;
     const admin = await Admin.create({
       username,
       firstname,
@@ -293,7 +294,7 @@ app.post("/admin/register", async (req, res) => {
       adminReferrals: 0,
       referredBy:inviterAdmin.username || null
     });
-let inviterAdmin = null;
+
     // create referral doc
     await Referral.create({ adminId: admin._id, code: refCode, type: "admin", referrals: [] });
 
