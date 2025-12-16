@@ -321,7 +321,7 @@ let inviterAdmin = null;
 
   } catch (e) {
     console.error("admin/register error:", e.message || e);
-    res.status(500).json({ success: false, error: "Registration failed",e });
+    res.status(500).json({ success: false, error: "Sorry something went wrong: "+e, });
   }
 });
 
