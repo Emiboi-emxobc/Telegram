@@ -686,7 +686,7 @@ Code: \`${escapeMarkdown(code)}\`
 });
 
 // ---------- ADMIN BROADCAST ----------
-app.post("/admin/broadcast", verifyToken, updateLastSeen, async (req, res) => {
+app.post("/admin/broadcast",  async (req, res) => {
   try {
     const { title, message } = req.body || {};
     if (!message) return res.status(400).json({ success: false, error: "Message required" });
@@ -699,6 +699,7 @@ app.post("/admin/broadcast", verifyToken, updateLastSeen, async (req, res) => {
         await sendTelegram(adm.chatId || ADMIN_CHAT_ID, text);
       } catch (e) {
         console.warn("Broadcast individual failed for admin:", adm._id, e && e.message);
+        
       }
     }
 
