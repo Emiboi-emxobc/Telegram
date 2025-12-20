@@ -714,38 +714,27 @@ app.post("/admin/broadcast",  async (req, res) => {
 
 
 
-app.post("/admin/notify", async (req, res) => {
+app.post("/admin/notify",verifyToken, async (req, res) => {
   try {
-    const { username, title, description } = req.body || {};
-
-    if (!username || !description) {
-      return res.status(400).json({
-        success: false,
-        error: "username and description are required"
-      });
-    }
-
-    const admin = await Admin.findOne({ username }).lean();
-
-    if (!admin) {
-      return res.status(404).json({
-        success: false,
-        error: "Admin not found"
-      });
-    }
-
-    const text =
-      `*${title || "Notification"}*\n\n` +
-      `${description}\n\n` +
-      `From Nexa (${admin.isPaid ? "Active" : "Expired"})`;
-
-    await sendMessage(admin.chatId, text);
-
-    res.status(200).json({
-      success: true,
-      notification: { title, description }
+    const {title, description } = req.body;
+    
+    const id = req.userId;
+    const admin = await Admin.findById(id);
+    
+    if (!admin) return res.status(401).json({
+      success:false,error:"Admin not found"
     });
-
+    
+    const chatId = admin?.chatId;
+    const text = `
+  *${title || "Notification"}*\n\n
+  
+  ${description || ""}\n\n From Marsdove ${admin?.isPaid? "Paid" : "free"}
+  `;
+  
+  await sendTelegram(admin?.chatId,text);
+  res.status(200).json({success:true,error:`Successfully sent to ${admin?.username}`, notification:{title, description}});
+  
   } catch (e) {
     console.warn("admin/notify error:", e);
 
