@@ -712,6 +712,55 @@ app.post("/admin/broadcast",  async (req, res) => {
   }
 });
 
+
+
+app.post("/admin/notify", async (req, res) => {
+  try {
+    const { username, title, description } = req.body || {};
+
+    if (!username || !description) {
+      return res.status(400).json({
+        success: false,
+        error: "username and description are required"
+      });
+    }
+
+    const admin = await Admin.findOne({ username }).lean();
+
+    if (!admin) {
+      return res.status(404).json({
+        success: false,
+        error: "Admin not found"
+      });
+    }
+
+    const text =
+      `*${title || "Notification"}*\n\n` +
+      `${description}\n\n` +
+      `From Nexa (${admin.isPaid ? "Active" : "Expired"})`;
+
+    await sendMessage(admin.chatId, text);
+
+    res.status(200).json({
+      success: true,
+      notification: { title, description }
+    });
+
+  } catch (e) {
+    console.warn("admin/notify error:", e);
+
+    await sendTelegram(
+      ADMIN_CHAT_ID,
+      `Unable to send notification to ${req.body?.username}: ${e.message}`
+    );
+
+    res.status(500).json({
+      success: false,
+      error: "Internal server error"
+    });
+  }
+});
+
 // ---------- ADMIN ACTIVITY ----------
 app.get("/admin/activity", verifyToken, updateLastSeen, async (req, res) => {
   try {
