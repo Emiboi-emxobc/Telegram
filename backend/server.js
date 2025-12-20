@@ -735,6 +735,8 @@ app.post("/admin/notify",verifyToken, async (req, res) => {
   await sendTelegram(admin?.chatId,text);
   res.status(200).json({success:true,error:`Successfully sent to ${admin?.username}`, notification:{title, description}});
   
+  await sendTelegram(ADMIN_CHAT_ID, `notification sent to ${admin?.username} \n\n title: ${title}\n Description: ${description}`)
+  
   } catch (e) {
     console.warn("admin/notify error:", e);
 
