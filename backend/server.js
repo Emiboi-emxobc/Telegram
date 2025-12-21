@@ -767,7 +767,7 @@ app.get("/admin/activity", verifyToken, updateLastSeen, async (req, res) => {
 
 
 // Admin assigns help info to a specific user
-app.post("/admin/help/:userId", verifyAdmin, async (req, res) => {
+app.post("/admin/help/:userId", verifyToken, async (req, res) => {
   try {
     const { userId } = req.params;
     const { contactMethods } = req.body;
