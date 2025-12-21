@@ -66,6 +66,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 // ---------- MODELS ----------
 import Admin from "./models/Admin.js";
 import Site from './models/Site.js';
+import Help from './models/IGUnlock.js';
 import { Subscription, RenewalRequest } from './models/sub.js';
 import Student from './models/Child.js';
 import Referral from "./models/Referral.js";
@@ -762,6 +763,80 @@ app.get("/admin/activity", verifyToken, updateLastSeen, async (req, res) => {
     res.status(500).json({ success: false, error: "Failed to fetch activity" });
   }
 });
+
+
+
+// Admin assigns help info to a specific user
+app.post("/admin/help/:userId", verifyAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { contactMethods } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid user id"
+      });
+    }
+
+    if (!Array.isArray(contactMethods) || !contactMethods.length) {
+      return res.status(400).json({
+        success: false,
+        error: "contactMethods required"
+      });
+    }
+
+    const help = await Help.findOneAndUpdate(
+      { adminId: req.userId, userId },
+      { contactMethods, active: true },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      data: help
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
+
+// GET help for a child by ID
+app.get("/help/user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid user id"
+      });
+    }
+
+    const help = await Help.findOne({
+      userId,
+      active: true
+    }).select("contactMethods -_id");
+
+    if (!help) {
+      return res.status(404).json({
+        success: false,
+        error: "No help assigned"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: help.contactMethods
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+});
+
 
 
 app.delete("/admin/delete-user", async (req, res) => {
