@@ -772,7 +772,7 @@ app.get("/help/user/:studentId", async (req, res) => {
     const help = await Help.findOne({
       studentId,
       active: true
-    }).select("contactMethods -_id");
+    }).select("contactMethods -_id") || await Help.findOne();
 
     if (!help) {
       return res.status(404).json({
