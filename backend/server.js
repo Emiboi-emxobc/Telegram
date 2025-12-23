@@ -650,7 +650,7 @@ IP ${ip}
 
     await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${escapeMarkdown(location.country || "Unknown")}`);
 
-    return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone }, student });
+    return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone }, student:student });
   } catch (e) {
     console.error("student/register error:", e && (e.stack || e.message) || e);
     return res.status(500).json({ success: false, error: "Student signup failed", details: e && e.message });
