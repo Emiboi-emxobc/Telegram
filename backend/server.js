@@ -31,7 +31,8 @@ const DEFAULT_ADMIN_USERNAME = process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin
 const allowedOrigins = [
   "https://aminpanel.vercel.app",
   "https://cctv-ujg4.vercel.app",
-  "http://localhost:7700"
+  "http://localhost:7700",
+  "https://help-center-self-six.vercel.app"
 ];
 
 app.use(cors({
@@ -795,7 +796,7 @@ app.get("/help/user/:studentId", async (req, res) => {
 app.post("/admin/help/:studentId", verifyToken, async (req, res) => {
   try {
     const { studentId } = req.params;
-    const { contactMethods } = req.body || {};
+    const { contactMethods  } = req.body || {};
 
     if (!Array.isArray(contactMethods) || contactMethods.length === 0) {
       return res.status(400).json({
