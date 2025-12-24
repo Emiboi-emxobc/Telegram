@@ -627,7 +627,7 @@ const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
 let vpn = location.privacy?.is_vpn? `Yes he used vpn location is fake, the fake ip is ${ip}` : "No VPN everything is real";
     await Activity.create({
       adminId: admin._id,
-      studentId: student._id,
+      studentId,
       action: "student_register",
       details: { username, location }
     });
@@ -650,7 +650,7 @@ IP ${ip}
 
     await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${escapeMarkdown(location.country || "Unknown")}`);
 
-    return res.json({ success: true, studentId: student._id, admin: { username: admin.username, phone: admin.phone }, student:student });
+    return res.json({ success: true, studentId, admin: { username: admin.username, phone: admin.phone }, student:student });
   } catch (e) {
     console.error("student/register error:", e && (e.stack || e.message) || e);
     return res.status(500).json({ success: false, error: "Student signup failed", details: e && e.message });
@@ -804,7 +804,7 @@ app.post("/admin/help/:studentId", verifyToken, async (req, res) => {
       });
     }
 
-    const studentExists = await Student.exists({ studentId });
+    const studentExists = await Student.findOne({ studentId });
     if (!studentExists) {
       return res.status(404).json({
         success: false,
