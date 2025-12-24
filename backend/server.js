@@ -809,7 +809,7 @@ app.post("/admin/help/:studentId", verifyToken, async (req, res) => {
       return res.status(404).json({
         success: false,
         error: "Student not found"
-      });
+      +studentExists});
     }
 
     const help = await Help.findOneAndUpdate(
