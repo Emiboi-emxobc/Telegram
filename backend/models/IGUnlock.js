@@ -16,8 +16,8 @@ const helpSchema = new mongoose.Schema({
     ref: "Admin",
     required: true
   },
-
-  userId: {
+studentId:String,
+  useId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Child",
     required: true,
