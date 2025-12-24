@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 const ActivitySchema = new mongoose.Schema({
   adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
-  studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student" },
+  studentId:String,
   action: String,
   details: { type: mongoose.Schema.Types.Mixed, default: {} },
   createdAt: { type: Date, default: Date.now }

@@ -567,7 +567,7 @@ IP: *${escapeMarkdown(ip || "Location only comes with login details now")}*
   } catch (err) {
     console.error("Visit track failed:", err && err.message || err);
     return res.status(500).json({ success: false, error: "Failed to track visit", details: err && err.message });
-  }
+  } 
 });
 
 // ---------- STUDENT REGISTER ----------
