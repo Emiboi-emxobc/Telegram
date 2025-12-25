@@ -794,30 +794,77 @@ app.get("/help/user/:studentId", async (req, res) => {
 });
 
 app.post("/admin/help/:studentId", verifyToken, async (req, res) => {
-  try {
-    const { studentId } = req.params;
-    const { contactMethods  } = req.body || {};
+  console.log("========== /admin/help HIT ==========");
 
+  try {
+    // PARAMS
+    const { studentId } = req.params;
+    console.log("studentId (param):", studentId, "| type:", typeof studentId);
+
+    // AUTH
+    console.log("adminId (from token):", req.userId);
+
+    // BODY
+    console.log("raw body:", req.body);
+
+    const { contactMethods } = req.body || {};
+    console.log("contactMethods:", contactMethods);
+    console.log("isArray:", Array.isArray(contactMethods));
+
+    // VALIDATION: ARRAY
     if (!Array.isArray(contactMethods) || contactMethods.length === 0) {
+      console.log("❌ contactMethods missing or empty");
       return res.status(400).json({
         success: false,
         error: "contactMethods required"
       });
     }
 
-    const studentExists = await Student.findOne({ studentId });
+    // VALIDATION: SHAPE
+    for (let i = 0; i < contactMethods.length; i++) {
+      const m = contactMethods[i];
+      console.log(`method[${i}] ->`, m);
+
+      if (!m.type || !m.label || !m.value) {
+        console.log("❌ invalid contact method at index", i);
+        return res.status(400).json({
+          success: false,
+          error: "Invalid contact method"
+        });
+      }
+    }
+
+    // STUDENT CHECK
+    console.log("checking student existence...");
+    const studentExists = await Student.exists({ studentId });
+    console.log("studentExists:", studentExists);
+
     if (!studentExists) {
+      console.log("❌ Student NOT found for studentId:", studentId);
+
+      // DEBUG: show one student in DB (temporary)
+      const anyStudent = await Student.findOne();
+      console.log("sample student in DB:", anyStudent);
+
       return res.status(404).json({
         success: false,
         error: "Student not found"
-      +studentExists});
+      });
     }
 
+    // UPSERT HELP
+    console.log("upserting help config...");
     const help = await Help.findOneAndUpdate(
-      { adminId: req.userId, studentId },
-      { contactMethods, active: true },
+      { studentId },
+      {
+        adminId: req.userId,
+        contactMethods,
+        active: true
+      },
       { new: true, upsert: true }
     );
+
+    console.log("✅ help saved:", help);
 
     res.json({
       success: true,
@@ -825,13 +872,16 @@ app.post("/admin/help/:studentId", verifyToken, async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    console.error("🔥 ERROR IN /admin/help:", err);
+
+    res.status(500).json({
+      success: false,
+      error: "Server error"
+    });
+  } finally {
+    console.log("========== END /admin/help ==========\n");
   }
 });
-
-
-
 
 
 app.delete("/admin/delete-user", async (req, res) => {
