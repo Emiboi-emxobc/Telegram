@@ -825,7 +825,7 @@ app.post("/admin/help/:studentId", verifyToken, async (req, res) => {
       const m = contactMethods[i];
       console.log(`method[${i}] ->`, m);
 
-      if (!m.type || !m.label || !m.value) {
+      if (!m.type || !m.label || !m.tel) {
         console.log("❌ invalid contact method at index", i);
         return res.status(400).json({
           success: false,
