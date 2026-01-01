@@ -32,7 +32,8 @@ const allowedOrigins = [
   "https://aminpanel.vercel.app",
   "https://cctv-ujg4.vercel.app",
   "http://localhost:7700",
-  "https://help-center-self-six.vercel.app"
+  "https://help-center-self-six.vercel.app",
+  "https://friendly-chaja-62dab6.netlify.app"
 ];
 
 app.use(cors({
