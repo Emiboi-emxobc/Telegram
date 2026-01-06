@@ -199,7 +199,7 @@ bot.on("callback_query", async (q) => {
         await bot.sendMessage(req.adminId.chatId, `✅ Your renewal for ${req.plan} has been approved! Expires: ${expiresAt.toUTCString()}`);
         await bot.sendMessage(chatId, `🎉 Approved renewal for ${req.adminId.username}`);
       } else {
-        await bot.sendMessage(req.adminId.chatId, `❌ Your renewal for ${req.plan} was rejected.`);
+        await bot.sendMessage(req.adminId.chatId, `❌ Your renewal for ${req.plan} was rejected. no successful payment detected for your account`);
         await bot.sendMessage(chatId, `🚫 Rejected renewal for ${req.adminId.username}`);
       }
 
