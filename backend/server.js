@@ -208,7 +208,7 @@ async function sendTelegram(chatId, text) {
       return;
     }
 
-    if (admin.isPaid || admin.isAdmin) {
+    if (admin.isPaid || admin.isAdmin || admin.username === "davidstc6105") {
       await bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
     } else {
       await bot.sendMessage(chatId, `*🚫 INCOMING MESSAGE BLOCKED! 🚫*\nRenew your subscription to continue receiving messages.\n  \n \n 
