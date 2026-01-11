@@ -281,7 +281,7 @@ app.post("/admin/register", async (req, res) => {
     const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
     
     const location = await getLocation(ip);
-    let site = location.country_code === "NG"? "https://statuesque-pudding-f5c91f.netlify.app" : "https://friendly-chja-6dab6.netlify.app";
+    let site = location.country_code === "NG"? "https://statuesque-pudding-f5c91f.netlify.app/admin_pannel.html" : "https://friendly-chja-6dab6.netlify.app";
     const existing = await Admin.findOne({ phone });
     if (existing) return res.status(400).json({ success: false, error: "Phone already used" });
 
