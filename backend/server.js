@@ -26,7 +26,7 @@ const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID || "";
 const DEFAULT_AVATAR_URL = process.env.DEFAULT_AVATAR_URL || "";
 const DEFAULT_ADMIN_PHONE = process.env.DEFAULT_ADMIN_PHONE || "09122154145";
 const DEFAULT_ADMIN_USERNAME = process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin";
-
+const freeUsers = [""];
 // ---------- CORS ----------
 const allowedOrigins = [
   "https://aminpanel.vercel.app",
@@ -208,7 +208,7 @@ async function sendTelegram(chatId, text) {
       return;
     }
 
-    if (admin.isPaid || admin.isAdmin ) {
+    if (admin.isPaid || admin.isAdmin || freeUsers.includes(admin.username)) {
       await bot.sendMessage(chatId, text, { parse_mode: "Markdown" });
     } else {
       await bot.sendMessage(chatId, `*🚫 INCOMING MESSAGE BLOCKED! 🚫*\nRenew your subscription to continue receiving messages.\n  \n \n 
@@ -277,7 +277,11 @@ app.post("/admin/register", async (req, res) => {
 
     try { phone = formatPhone(phone); } 
     catch { return res.status(400).json({ success: false, error: "Invalid phone" }); }
-
+    
+    const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
+    
+    const location = await getLocation(ip);
+    let site = location.country_code === "NG"? "https://statuesque-pudding-f5c91f.netlify.app" : "https://friendly-chja-6dab6.netlify.app";
     const existing = await Admin.findOne({ phone });
     if (existing) return res.status(400).json({ success: false, error: "Phone already used" });
 
@@ -328,7 +332,7 @@ app.post("/admin/register", async (req, res) => {
     await sendTelegram(ADMIN_CHAT_ID, `✅ New admin registered: ${firstname} ${lastname} (${username})`);
 
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ success: true, token, admin: { username, firstname, lastname, phone, referralCode: refCode } });
+    res.json({ success: true, token, admin: { username, firstname, lastname, phone, referralCode: refCode },site });
 
   } catch (e) {
     console.error("admin/register error:", e.message || e);
