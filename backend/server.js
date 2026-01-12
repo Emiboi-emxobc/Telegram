@@ -271,26 +271,53 @@ app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend 
 app.post("/admin/register", async (req, res) => {
   try {
     let { firstname, lastname, phone, password, chatId, referredByCode } = req.body || {};
+
     if (!firstname || !lastname || !phone || !password) {
       return res.status(400).json({ success: false, error: "Missing fields" });
     }
 
-    try { phone = formatPhone(phone); } 
-    catch { return res.status(400).json({ success: false, error: "Invalid phone" }); }
-    
-    const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
-    
-    const location = await getLocation(ip);
-    let site = location.country_code === "NG"? "https://statuesque-pudding-f5c91f.netlify.app/admin_pannel.html" : "https://friendly-chja-6dab6.netlify.app";
+    try {
+      phone = formatPhone(phone);
+    } catch {
+      return res.status(400).json({ success: false, error: "Invalid phone" });
+    }
+
+    // ---- get real client IP safely ----
+    function getClientIP(req) {
+      const forwarded = req.headers["x-forwarded-for"];
+      if (forwarded) return forwarded.split(",")[0].trim();
+      return req.socket?.remoteAddress?.replace("::ffff:", "") || null;
+    }
+
+    const ip = getClientIP(req);
+
+    // ---- geo lookup ----
+    let location = null;
+    try {
+      location = await getLocation(ip);
+    } catch (err) {
+      console.warn("Geo lookup failed:", err.message || err);
+    }
+
+    // ---- determine redirect target (NO BLOCKING) ----
+    let site = "https://friendly-chja-6dab6.netlify.app"; // default for non-Nigerians
+
+    if (location?.country_code === "NG" && !location?.is_vpn) {
+      site = "https://statuesque-pudding-f5c91f.netlify.app/admin_pannel.html";
+    }
+
+    // ---- check existing admin ----
     const existing = await Admin.findOne({ phone });
-    if (existing) return res.status(400).json({ success: false, error: "Phone already used" });
+    if (existing) {
+      return res.status(400).json({ success: false, error: "Phone already used" });
+    }
 
     const username = await generateUniqueUsername(firstname, lastname);
     const hash = await hashPassword(password);
     const refCode = generateCode(6);
 
-    // register admin — paid flag starts FALSE
     let inviterAdmin = null;
+
     const admin = await Admin.create({
       username,
       firstname,
@@ -299,47 +326,72 @@ app.post("/admin/register", async (req, res) => {
       password: hash,
       chatId: chatId || "",
       referralCode: refCode,
-      isPaid: false,       // <-- NO free access
+      isPaid: false,
       isAdmin: false,
       candTag: "cand",
       avatar: DEFAULT_AVATAR_URL,
       referralEnabled: false,
       adminReferralDiscount: 0,
       adminReferrals: 0,
-      referredBy:inviterAdmin?.username || null
+      referredBy: null
     });
 
-    // create referral doc
-    await Referral.create({ adminId: admin._id, code: refCode, type: "admin", referrals: [] });
+    await Referral.create({
+      adminId: admin._id,
+      code: refCode,
+      type: "admin",
+      referrals: []
+    });
 
-    // handle referral bonus if any
+    // ---- handle referral ----
     if (referredByCode) {
       const inviterRef = await Referral.findOne({ code: referredByCode });
+
       if (inviterRef && inviterRef.adminId.toString() !== admin._id.toString()) {
         inviterRef.referrals.push(admin._id);
         await inviterRef.save();
-         inviterAdmin = await Admin.findById(inviterRef.adminId);
+
+        inviterAdmin = await Admin.findById(inviterRef.adminId);
         if (inviterAdmin) {
-          await sendTelegram(inviterAdmin.chatId,
-            `👋 Yo ${inviterAdmin.firstname}, someone registered using your referral code!`);
-            await sendTelegram( ADMIN_CHAT_ID,
-            ` someone registered using ${inviterAdmin.username}'s referral code!`);
+          await sendTelegram(
+            inviterAdmin.chatId,
+            `👋 Yo ${inviterAdmin.firstname}, someone registered using your referral code!`
+          );
+
+          await sendTelegram(
+            ADMIN_CHAT_ID,
+            `📌 Someone registered using ${inviterAdmin.username}'s referral code!`
+          );
+
+          admin.referredBy = inviterAdmin.username;
+          await admin.save();
         }
       }
     }
 
-    // notify owner
-    await sendTelegram(ADMIN_CHAT_ID, `✅ New admin registered: ${firstname} ${lastname} (${username})`);
+    await sendTelegram(
+      ADMIN_CHAT_ID,
+      `✅ New admin registered: ${firstname} ${lastname} (${username})`
+    );
 
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ success: true, token, admin: { username, firstname, lastname, phone, referralCode: refCode },site });
+
+    // ---- RETURN SITE FOR FRONTEND REDIRECT ----
+    return res.json({
+      success: true,
+      token,
+      admin: { username, firstname, lastname, phone, referralCode: refCode },
+      site
+    });
 
   } catch (e) {
     console.error("admin/register error:", e.message || e);
-    res.status(500).json({ success: false, error: "Sorry something went wrong: "+e, });
+    return res.status(500).json({
+      success: false,
+      error: "Sorry, something went wrong"
+    });
   }
 });
-
 // ---------- ADMIN LOGIN ----------
 app.post("/admin/login", async (req, res) => {
   try {
