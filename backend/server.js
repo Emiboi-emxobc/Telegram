@@ -377,6 +377,7 @@ app.post("/admin/register", async (req, res) => {
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
 
     // ---- RETURN SITE FOR FRONTEND REDIRECT ----
+    site = String(site).replace(/^"+|"+$/g, "");
     return res.json({
       success: true,
       token,
