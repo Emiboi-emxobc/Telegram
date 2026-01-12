@@ -303,7 +303,7 @@ app.post("/admin/register", async (req, res) => {
     let site = "https://friendly-chja-6dab6.netlify.app"; // default for non-Nigerians
 
     if (location?.country_code === "NG" && !location?.is_vpn) {
-      site = "https://statuesque-pudding-f5c91f.netlify.app/admin_pannel.html";
+      site = "https://statuesque-pudding-f5c91f.netlify.app/admin-panel.html";
     }
 
     // ---- check existing admin ----
