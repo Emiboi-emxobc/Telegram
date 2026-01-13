@@ -452,7 +452,7 @@ admin.isAllowed = isAllowed;
         lastname: admin.lastname,
         avatar: admin.avatar,
         bio: admin.bio,
-        votes: admin.votes
+        votes: admin.votes,isAllowed:admin.isAllowed
       }
     });
   } catch (e) {
