@@ -433,10 +433,15 @@ let isAllowed = false;
     const ok = await bcrypt.compare(password, admin.password);
     if (!ok) return res.status(401).json({ success: false, error: "Invalid credentials" });
 
-    const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
-
+    let token =null;
+    
+    
 
 admin.isAllowed = isAllowed;
+if (isAllowed) {
+  token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
+
+}
     // notify owner about login and notify admin
     await sendTelegram(ADMIN_CHAT_ID, `🔐 Admin *${admin.username}* (${admin.firstname} ${admin.lastname}) just logged in.`);
     await sendTelegram(admin.chatId || ADMIN_CHAT_ID, `🔐 Login detected on your Nexa account (${admin.username})`);
