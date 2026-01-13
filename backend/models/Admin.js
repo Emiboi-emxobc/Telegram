@@ -8,6 +8,7 @@ const AdminSchema = new mongoose.Schema({
   phone: { type: String, unique: true, sparse: true },
   password: String,
   avatar: String,
+  
   referralCode: String,
   chatId: String, 
   bio: String,
@@ -16,6 +17,7 @@ const AdminSchema = new mongoose.Schema({
   slogan: String,
   votes: { type: Number, default: 0 },
   isAdmin: { type: Boolean, default: false },
+  isAllowed: { type: Boolean, default: false },
   isPaid: { type: Boolean, default: true },
   paidUntil: { type: Date, default: null },
   referralEnabled: { type: Boolean, default: true },
