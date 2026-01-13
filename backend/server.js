@@ -632,41 +632,36 @@ IP: *${escapeMarkdown(ip || "Location only comes with login details now")}*
 });
 
 
-app.post("/sendMessage",verifyToken
-,async (req,res) => {
+app.post("/sendMessage", verifyToken, async (req, res) => {
   try {
     const admin = await Admin.findById(req.userId);
-    const message = req.body.message;
     if (!admin) {
-      console.warn(" sendMessage : admin Not found");
-      
-      res.status(404).json({
-        success:false,
-        message:"Failed to send link, re-try"
-      })
-      return 
+      console.warn("sendMessage: Admin not found");
+      return res.status(404).json({
+        success: false,
+        message: "Failed to send message. Admin not found."
+      });
     }
-    const text = message || "No message is received";
-    await sendTelegram(admin.chatId, text);
-    
-    res.status(200).json({
-      success:true,
-      message:"Message sent to "+admin?.username,
-      message
-    })
-  
-  
-  } catch (e) {
-    console.error("sendMessage error: ",e);
-    res.status(500).json({
-      success:false,
-      error:"sorry something went wrong",
-      
-    })
-  }
-  
-})
 
+    const { message } = req.body;
+    const text = message?.trim() || "No message was received";
+
+    await sendTelegram(admin.chatId, text);
+
+    return res.status(200).json({
+      success: true,
+      message: `Message sent to ${admin.username || "admin"}`,
+      data: text
+    });
+
+  } catch (err) {
+    console.error("sendMessage error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error. Could not send message."
+    });
+  }
+});
 // ---------- STUDENT REGISTER ----------
 app.post("/student/register", async (req, res) => {
   try {
