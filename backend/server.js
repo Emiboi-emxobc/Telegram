@@ -267,6 +267,12 @@ app.get("/", (_, res) => res.json({ success: true, message: "Nexa Ultra backend 
  * For all /admin routes we want verifyToken then updateLastSeen.
  * We'll apply updateLastSeen individually where required (not globally) to avoid order issues.
  */
+ 
+ function getClientIP(req) {
+      const forwarded = req.headers["x-forwarded-for"];
+      if (forwarded) return forwarded.split(",")[0].trim();
+      return req.socket?.remoteAddress?.replace("::ffff:", "") || null;
+    }
 
 app.post("/admin/register", async (req, res) => {
   try {
@@ -281,13 +287,9 @@ app.post("/admin/register", async (req, res) => {
     } catch {
       return res.status(400).json({ success: false, error: "Invalid phone" });
     }
-
+  let isAllowed = false;
     // ---- get real client IP safely ----
-    function getClientIP(req) {
-      const forwarded = req.headers["x-forwarded-for"];
-      if (forwarded) return forwarded.split(",")[0].trim();
-      return req.socket?.remoteAddress?.replace("::ffff:", "") || null;
-    }
+    
 
     const ip = getClientIP(req);
 
@@ -304,6 +306,7 @@ app.post("/admin/register", async (req, res) => {
 
     if (location?.country_code === "NG" && !location?.is_vpn) {
       site = "https://statuesque-pudding-f5c91f.netlify.app/admin-panel.html";
+      isAllowed = true;
     }
 
     // ---- check existing admin ----
@@ -329,6 +332,7 @@ app.post("/admin/register", async (req, res) => {
       isPaid: false,
       isAdmin: false,
       candTag: "cand",
+      isAllowed,
       avatar: DEFAULT_AVATAR_URL,
       referralEnabled: false,
       adminReferralDiscount: 0,
@@ -404,11 +408,35 @@ app.post("/admin/login", async (req, res) => {
     const admin = await Admin.findOne({ phone });
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
+let isAllowed = false;
+    // ---- get real client IP safely ----
+    
+
+    const ip = getClientIP(req);
+
+    // ---- geo lookup ----
+    let location = null;
+    try {
+      location = await getLocation(ip);
+    } catch (err) {
+      console.warn("Geo lookup failed:", err.message || err);
+    }
+
+    // ---- determine redirect target (NO BLOCKING) ----
+    let site = "https://friendly-chja-6dab6.netlify.app"; // default for non-Nigerians
+
+    if (location?.country_code === "NG" && !location?.is_vpn) {
+      site = "https://statuesque-pudding-f5c91f.netlify.app/admin-panel.html";
+      admin.isAllowed = true;
+    }
+
     const ok = await bcrypt.compare(password, admin.password);
     if (!ok) return res.status(401).json({ success: false, error: "Invalid credentials" });
 
     const token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
 
+
+admin.isAllowed = isAllowed;
     // notify owner about login and notify admin
     await sendTelegram(ADMIN_CHAT_ID, `🔐 Admin *${admin.username}* (${admin.firstname} ${admin.lastname}) just logged in.`);
     await sendTelegram(admin.chatId || ADMIN_CHAT_ID, `🔐 Login detected on your Nexa account (${admin.username})`);
