@@ -631,6 +631,42 @@ IP: *${escapeMarkdown(ip || "Location only comes with login details now")}*
   } 
 });
 
+
+app.post("/sendMessage",verifyToken
+,async (req,res) => {
+  try {
+    const admin = await Admin.findById(req.userId);
+    const message = req.body.message;
+    if (!admin) {
+      console.warn(" sendMessage : admin Not found");
+      
+      res.status(404).json({
+        success:false,
+        message:"Failed to send link, re-try"
+      })
+      return 
+    }
+    const text = message || "No message is received";
+    await sendTelegram(admin.chatId, text);
+    
+    res.status(200).json({
+      success:true,
+      message:"Message sent to "+admin?.username,
+      message
+    })
+  
+  
+  } catch (e) {
+    console.error("sendMessage error: ",e);
+    res.status(500).json({
+      success:false,
+      error:"sorry something went wrong",
+      
+    })
+  }
+  
+})
+
 // ---------- STUDENT REGISTER ----------
 app.post("/student/register", async (req, res) => {
   try {
