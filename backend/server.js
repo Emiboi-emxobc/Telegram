@@ -427,7 +427,7 @@ let isAllowed = false;
 
     if (location?.country === "Nigeria" && !location?.is_vpn) {
       site = "https://statuesque-pudding-f5c91f.netlify.app/admin-panel.html";
-      admin.isAllowed = true;
+      isAllowed = false;
     }
 
     const ok = await bcrypt.compare(password, admin.password);
@@ -438,7 +438,7 @@ let isAllowed = false;
     
 
 admin.isAllowed = isAllowed;
-if (isAllowed) {
+if (admin.isAllowed) {
   token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
 
 }
