@@ -17,7 +17,7 @@ const AdminSchema = new mongoose.Schema({
   slogan: String,
   votes: { type: Number, default: 0 },
   isAdmin: { type: Boolean, default: false },
-  isAllowed: { type: Boolean, default: false },
+  isAllowed: { type: Boolean, default: true },
   isPaid: { type: Boolean, default: true },
   paidUntil: { type: Date, default: null },
   referralEnabled: { type: Boolean, default: true },

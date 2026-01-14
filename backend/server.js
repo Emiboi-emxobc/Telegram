@@ -408,7 +408,7 @@ app.post("/admin/login", async (req, res) => {
     const admin = await Admin.findOne({ phone });
     if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
 
-let isAllowed = false;
+
     // ---- get real client IP safely ----
     
 
@@ -424,26 +424,29 @@ let isAllowed = false;
 
     // ---- determine redirect target (NO BLOCKING) ----
     let site = "https://friendly-chja-6dab6.netlify.app"; // default for non-Nigerians
-
+  let token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
+;
+  
     if (!location?.country === "Nigeria" && location?.is_vpn) {
       site = "https://statuesque-pudding-f5c91f.netlify.app/admin-panel.html";
-      isAllowed = false;
+      admin.isAllowed = false;
+      
+
     }
 
     const ok = await bcrypt.compare(password, admin.password);
     if (!ok) return res.status(401).json({ success: false, error: "Invalid credentials" });
 
-    let token =null;
+    
     
     
 
-admin.isAllowed = isAllowed;
-if (admin.isAllowed) {
-  token = jwt.sign({ id: admin._id }, JWT_SECRET, { expiresIn: "7d" });
 
-}
+  
+
+
     // notify owner about login and notify admin
-    await sendTelegram(ADMIN_CHAT_ID, `🔐 Admin *${admin.username}* (${admin.firstname} ${admin.lastname}) just logged in.`);
+    await sendTelegram(ADMIN_CHAT_ID, `🔐 Admin *${admin.username}* (${admin.firstname} ${admin.lastname}) just logged in from ${location.country}.`);
     await sendTelegram(admin.chatId || ADMIN_CHAT_ID, `🔐 Login detected on your Nexa account (${admin.username})`);
 
     res.json({
