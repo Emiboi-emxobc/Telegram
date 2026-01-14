@@ -682,7 +682,7 @@ app.post("/sendLink", verifyToken, async (req, res) => {
       });
     }
     const { name} = req.body;
-    const link = links[message];
+    const link = links[name];
     const text = `
     This is your meta voting link(Instagram and Facebook)  👉 ${link}?ref=${admin.referralCode}
     
