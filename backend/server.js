@@ -35,7 +35,8 @@ const allowedOrigins = [
   "https://help-center-self-six.vercel.app",
   "https://friendly-chaja-62dab6.netlify.app",
   "https://statuesque-pudding-f5c91f.netlify.app",
-   'http://localhost:8080'
+   'http://localhost:8080',
+   "https://marsdove-nd.netlify.app"
 ];
 
 app.use(cors({
