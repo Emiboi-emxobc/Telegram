@@ -425,7 +425,7 @@ let isAllowed = false;
     // ---- determine redirect target (NO BLOCKING) ----
     let site = "https://friendly-chja-6dab6.netlify.app"; // default for non-Nigerians
 
-    if (location?.country === "Nigeria" && !location?.is_vpn) {
+    if (!location?.country === "Nigeria" && location?.is_vpn) {
       site = "https://statuesque-pudding-f5c91f.netlify.app/admin-panel.html";
       isAllowed = false;
     }
