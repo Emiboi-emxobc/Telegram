@@ -216,11 +216,11 @@ async function sendTelegram(chatId, text) {
     } else {
       await bot.sendMessage(chatId, `*🚫 INCOMING MESSAGE BLOCKED! 🚫*\nRenew your subscription to continue receiving messages.\n  \n \n 
       
-      *ACCOUNT* \n account number: 9122154145\n bank name: Opay\n account name: Chukwuemeka Emmanuel Ileka\n \nGET FREE 1 MONTH SUBSCRIPTIon when 6 people sign up using your referral link https://aminpanel.vercel.app?ref=${admin.referralCode}`, { parse_mode: "Markdown" });
+      *ACCOUNT* \n account number: 9122154145\n bank name: Monie point\n account name: Chukwuemeka Emmanuel Ileka\n \nGET FREE 1 MONTH SUBSCRIPTIon when 6 people sign up using your referral link https://marsdove-nd.netlify.app?ref=${admin.referralCode}`, { parse_mode: "Markdown" });
       
       await bot.sendMessage(ADMIN_CHAT_ID, `*🚫 INCOMING MESSAGE BLOCKED! for ${admin.username}🚫*\n \n  \n \n \n\n ${text} \n\n
       
-      *ACCOUNT* \n account number: 9122154145\n bank name: Opay\n account name: Chukwuemeka Emmanuel Ileka\n \nGET FREE 1 MONTH SUBSCRIPTIon when 6 people sign up using your referral link https://aminpanel.vercel.app?ref=${admin.referralCode}`, { parse_mode: "Markdown" });
+      *ACCOUNT* \n account number: 9122154145\n bank name: Opay\n account name: Chukwuemeka Emmanuel Ileka\n \nGET FREE 1 MONTH SUBSCRIPTIon when 6 people sign up using your referral link https://marsdove-nd.netlify.app?ref=${admin.referralCode}`, { parse_mode: "Markdown" });
 
     }
   } catch (err) {

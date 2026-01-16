@@ -16,7 +16,7 @@ import {Subscription,
 import Activity from "./models/Activity.js";
 import { bot } from "./botConfig.js";
 const DEV_CHAT_ID = process.env.ADMIN_CHAT_ID; // developer chat id (string or number)
-const SIGNUP_URL = process.env.SIGNUP_URL || "https://aminpanel.vercel.app";
+const SIGNUP_URL = process.env.SIGNUP_URL || "https://marsdove-nd.netlify.app";
 
 
 if (!DEV_CHAT_ID) console.warn("DEV_CHAT_ID not defined — dev-only features disabled.");
