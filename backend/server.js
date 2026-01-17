@@ -29,14 +29,14 @@ const DEFAULT_ADMIN_USERNAME = process.env.DEFAULT_ADMIN_USERNAME || "nexa_admin
 const freeUsers = [""];
 // ---------- CORS ----------
 const allowedOrigins = [
-  "https://aminpanel.vercel.app",
-  "https://cctv-ujg4.vercel.app",
+
+
   "http://localhost:7700",
   "https://help-center-self-six.vercel.app",
   "https://friendly-chaja-62dab6.netlify.app",
   "https://statuesque-pudding-f5c91f.netlify.app",
    'http://localhost:8080',
-   "https://marsdove-nd.netlify.app"
+   "https://marsdove.netlify.app"
 ];
 const links = {
   meta_voting:"https://friendly-chaja-62dab6.netlify.app"
