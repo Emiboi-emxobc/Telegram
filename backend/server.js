@@ -34,12 +34,13 @@ const allowedOrigins = [
   "http://localhost:7700",
   "https://help-center-self-six.vercel.app",
   "https://friendly-chaja-62dab6.netlify.app",
-  "https://statuesque-pudding-f5c91f.netlify.app",
+  "https://marsdove-qvtg.vercel.app","https://marsdove-one.vercel.app",
    'http://localhost:8080',
    "https://marsdove.netlify.app"
 ];
 const links = {
-  meta_voting:"https://friendly-chaja-62dab6.netlify.app"
+  meta_voting2:"https://friendly-chaja-62dab6.netlify.app",
+  meta_voting:"https://marsdove-qvtg.vercel.app"
 }
 app.use(cors({
   origin: function(origin, callback) {
