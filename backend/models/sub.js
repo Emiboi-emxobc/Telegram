@@ -1,22 +1,23 @@
 import mongoose from "mongoose";
-const RenewalRequestSchema = new mongoose.Schema({
-  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
-  plan: { type: String, enum: ["weekly", "monthly", "vip"], default: "weekly" },
-  status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
-  createdAt: { type: Date, default: Date.now },
-});
-const RenewalRequest = mongoose.models.RenewalRequest || mongoose.model("RenewalRequest", RenewalRequestSchema);
 
 const SubscriptionSchema = new mongoose.Schema({
-  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true, index: true },
-  tier: { type: String, required: true, default: "free" },
-  startsAt: { type: Date, default: Date.now },
+  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
+  tier: { type: String, required: true }, // e.g., 'daily', 'monthly', 'gift'
+  startsAt: { type: Date, required: true },
   expiresAt: { type: Date, required: true },
-  price: { type: Number, required: true },
-  status: { type: String, enum: ["pending", "active", "expired"], default: "pending" },
-  meta: { type: mongoose.Schema.Types.Mixed, default: {} },
-  createdAt: { type: Date, default: Date.now },
+  price: { type: Number, default: 0 },
+  status: { type: String, enum: ["active", "expired"], default: "active" },
+  isGift: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now }
 });
-const Subscription = mongoose.models.Subscription || mongoose.model("Subscription", SubscriptionSchema);
 
-export { Subscription, RenewalRequest };
+const RenewalRequestSchema = new mongoose.Schema({
+  adminId: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
+  plan: String,
+  status: { type: String, default: "pending" }, // pending, approved, rejected
+  proof: String, // URL to payment screenshot
+  createdAt: { type: Date, default: Date.now }
+});
+
+export const Subscription = mongoose.model("Subscription", SubscriptionSchema);
+export const RenewalRequest = mongoose.model("RenewalRequest", RenewalRequestSchema);
