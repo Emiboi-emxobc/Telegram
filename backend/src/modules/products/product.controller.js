@@ -98,3 +98,35 @@ exports.deleteProduct = async (req, res) => {
     });
   }
 };
+
+
+exports.uploadProductImage = async (req, res) => {
+  try {
+    const streamifier = require('streamifier');
+    const cloudinary = require('../../config/cloudinary');
+
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: 'marsdove-products' },
+      (error, result) => {
+        if (error) {
+          return res.status(500).json({
+            success: false,
+            message: error.message
+          });
+        }
+
+        res.status(200).json({
+          success: true,
+          url: result.secure_url
+        });
+      }
+    );
+
+    streamifier.createReadStream(req.file.buffer).pipe(stream);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
