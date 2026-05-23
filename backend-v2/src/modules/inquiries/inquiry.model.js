@@ -1,32 +1,60 @@
-const mongoose = require('mongoose');
+const mongoose =
+  require('mongoose');
 
-const inquirySchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true
+const inquirySchema =
+  new mongoose.Schema(
+    {
+      name: {
+        type: String,
+        required: true,
+        trim: true
+      },
+
+      email: {
+        type: String,
+        trim: true,
+        lowercase: true
+      },
+
+      phone: {
+        type: String,
+        required: true,
+        trim: true
+      },
+
+      message: {
+        type: String,
+        required: true,
+        trim: true
+      },
+
+      product: {
+        type:
+          mongoose.Schema.Types.ObjectId,
+
+        ref: 'Product'
+      },
+
+      status: {
+        type: String,
+
+        enum: [
+          'pending',
+          'contacted',
+          'resolved'
+        ],
+
+        default: 'pending'
+      }
     },
 
-    email: String,
-
-    phone: {
-      type: String,
-      required: true
-    },
-
-    message: {
-      type: String,
-      required: true
-    },
-
-    product: String,
-
-    status: {
-      type: String,
-      default: 'pending'
+    {
+      timestamps: true
     }
-  },
-  { timestamps: true }
-);
+  );
 
-module.exports = mongoose.model('Inquiry', inquirySchema);
+module.exports =
+  mongoose.model(
+    'Inquiry',
+    inquirySchema
+  );
