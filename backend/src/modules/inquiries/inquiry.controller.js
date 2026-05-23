@@ -1,33 +1,60 @@
-const inquiryService = require('./inquiry.service');
+const inquiryService =
+  require('./inquiry.service');
 
-exports.createInquiry = async (req, res) => {
-  try {
-    const inquiry = await inquiryService.createInquiry(req.body);
+const asyncHandler =
+  require('../../helpers/asyncHandler');
 
-    res.status(201).json({
-      success: true,
-      data: inquiry
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
+const sendResponse =
+  require('../../helpers/sendResponse');
 
-exports.getInquiries = async (req, res) => {
-  try {
-    const inquiries = await inquiryService.getAllInquiries();
+/* ======================
+   CREATE INQUIRY
+====================== */
 
-    res.status(200).json({
-      success: true,
-      data: inquiries
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
+exports.createInquiry =
+  asyncHandler(
+    async (req, res) => {
+
+      const inquiry =
+        await inquiryService.createInquiry(
+          req.body
+        );
+
+      return sendResponse(res, {
+        statusCode: 201,
+
+        message:
+          'Inquiry submitted',
+
+        data: inquiry
+      });
+
+    }
+  );
+
+/* ======================
+   GET INQUIRIES
+====================== */
+
+exports.getInquiries =
+  asyncHandler(
+    async (req, res) => {
+
+      const result =
+        await inquiryService.getAllInquiries(
+          req.query
+        );
+
+      return sendResponse(res, {
+        message:
+          'Inquiries fetched',
+
+        data:
+          result.inquiries,
+
+        meta:
+          result.pagination
+      });
+
+    }
+  );

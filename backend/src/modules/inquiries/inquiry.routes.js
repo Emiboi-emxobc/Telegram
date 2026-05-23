@@ -1,20 +1,17 @@
-const router = require('express').Router();
-const multer = require('multer');
+const router =
+  require('express').Router();
 
-const upload = multer({
-  storage: multer.memoryStorage()
-});
+const controller =
+  require('./inquiry.controller');
+
+router.get(
+  '/',
+  controller.getInquiries
+);
 
 router.post(
-  '/upload',
-  authMiddleware,
-  adminMiddleware,
-  upload.single('image'),
-  controller.uploadProductImage
+  '/',
+  controller.createInquiry
 );
-const controller = require('./inquiry.controller');
-
-router.get('/', controller.getInquiries);
-router.post('/', controller.createInquiry);
 
 module.exports = router;
