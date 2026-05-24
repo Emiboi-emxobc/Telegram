@@ -5,7 +5,7 @@ const streamifier =
   require('streamifier');
 
 const cloudinary =
-  require('./cloudinary.service');
+  require("./cloudinary.service");
 
 exports.uploadImage =
   async file => {
