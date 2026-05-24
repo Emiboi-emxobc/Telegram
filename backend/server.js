@@ -4,7 +4,7 @@ const app = require('./src/app');
 
 const connectDB =
   require('./src/config/db');
-
+const seedAdmin = require("./src/seedAdmin.js"); // adjust path if needed
 const PORT =
   process.env.PORT || 3000;
 
@@ -17,6 +17,7 @@ connectDB();
 /* ======================
    SERVER
 ====================== */
+await seedAdmin(); // 👈 AUTO SEED HERE
 
 const server = app.listen(
   PORT,
