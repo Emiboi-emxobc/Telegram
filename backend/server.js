@@ -1,59 +1,73 @@
-require('dotenv').config();
+require("dotenv").config();
 
-const app = require('./src/app');
+const app = require("./src/app");
 
 const connectDB =
-  require('./src/config/db');
-const seedAdmin = require("./src/seedAdmin.js"); // adjust path if needed
+  require("./src/config/db");
+
+const seedAdmin =
+  require("./src/seedAdmin.js");
+
 const PORT =
   process.env.PORT || 3000;
 
 /* ======================
-   DATABASE
+   START SERVER
 ====================== */
 
-connectDB();
+async function startServer() {
+  try {
+    await connectDB();
 
-/* ======================
-   SERVER
-====================== */
-await seedAdmin(); // 👈 AUTO SEED HERE
+    await seedAdmin();
 
-const server = app.listen(
-  PORT,
-  () => {
-    console.log(
-      `🚀 Marsdove backend running on ${PORT}`
-    );
-  }
-);
-
-/* ======================
-   UNCAUGHT ERRORS
-====================== */
-
-process.on(
-  'unhandledRejection',
-  error => {
-    console.error(
-      '❌ Unhandled Rejection:',
-      error
+    const server = app.listen(
+      PORT,
+      () => {
+        console.log(
+          `🚀 Marsdove backend running on ${PORT}`
+        );
+      }
     );
 
-    server.close(() => {
-      process.exit(1);
-    });
-  }
-);
+    /* ======================
+       UNCAUGHT ERRORS
+    ====================== */
 
-process.on(
-  'uncaughtException',
-  error => {
+    process.on(
+      "unhandledRejection",
+      error => {
+        console.error(
+          "❌ Unhandled Rejection:",
+          error
+        );
+
+        server.close(() => {
+          process.exit(1);
+        });
+      }
+    );
+
+    process.on(
+      "uncaughtException",
+      error => {
+        console.error(
+          "❌ Uncaught Exception:",
+          error
+        );
+
+        process.exit(1);
+      }
+    );
+
+  } catch (error) {
     console.error(
-      '❌ Uncaught Exception:',
+      "❌ Failed to start server:",
       error
     );
 
     process.exit(1);
   }
-);
+}
+
+startServer();
