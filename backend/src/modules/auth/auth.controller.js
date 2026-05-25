@@ -25,6 +25,31 @@ const cookieOptions = {
     1000
 };
 
+
+exports.updateCredentials =
+  async (req, res, next) => {
+    try {
+
+      const result =
+        await authService.updateCredentials(
+          req.user,
+          req.body
+        );
+
+      return sendResponse(
+        res,
+        {
+          message:
+            "Credentials updated successfully",
+          data: result
+        }
+      );
+
+    } catch (error) {
+      next(error);
+    }
+  };
+
 /* ======================
    REGISTER
 ====================== */
