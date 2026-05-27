@@ -27,7 +27,8 @@ securityMiddleware(app);
 ========================= */
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  'http://localhost:7700/',
+  'http://localhost:7700',
+  'https://marsdove-nu.vercel.app'
   
 ].filter(Boolean);
 
