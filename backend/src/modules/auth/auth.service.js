@@ -37,7 +37,9 @@ function sanitizeUser(user) {
    REGISTER USER
 ====================== */
 exports.registerUser = async (payload) => {
-  const email = payload.email.trim().toLowerCase();
+  let {name, email, password } = payload;
+  
+ email = email.trim().toLowerCase();
 
   const exists = await User.findOne({ email });
 
@@ -48,7 +50,7 @@ exports.registerUser = async (payload) => {
   const hashedPassword = await bcrypt.hash(payload.password, 12);
 
   const user = await User.create({
-    ...payload,
+    name,
     email,
     password: hashedPassword
   });
