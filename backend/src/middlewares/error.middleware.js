@@ -80,7 +80,7 @@ module.exports = (
   ) {
 
     response.message =
-      'Duplicate field value';
+      'Duplicate field value '+error.message;
   }
 
   return res
