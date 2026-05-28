@@ -13,7 +13,7 @@ async function seedAdmin() {
     }
 
     const hashedPassword = await bcrypt.hash(
-      process.env.ADMIN_PASSWORD || "02448602611",
+      process.env.ADMIN_PASSWORD,
       12
     );
 

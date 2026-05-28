@@ -27,7 +27,7 @@ const authSchema =
 
         trim: true,
 
-        index: true
+        
       },
 
       password: {
