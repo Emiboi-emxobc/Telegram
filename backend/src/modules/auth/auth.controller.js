@@ -136,7 +136,8 @@ exports.login =
             'Login successful',
 
           data:
-            result.user
+            result.user,
+            token: result.token
         }
       );
 
