@@ -1,19 +1,32 @@
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const bcrypt =
+  require("bcryptjs");
 
-const User = require("./auth.model");
-const ApiError = require("../../helpers/ApiError");
+const jwt =
+  require("jsonwebtoken");
+
+const User =
+  require("./auth.model");
+
+const ApiError =
+  require("../../helpers/ApiError");
 
 /* ======================
-   TOKEN GENERATOR
+   TOKEN
 ====================== */
-function generateToken(user) {
+
+function generateToken(
+  user
+) {
   return jwt.sign(
     {
       id: user._id,
-      role: user.role
+
+      role:
+        user.role
     },
+
     process.env.JWT_SECRET,
+
     {
       expiresIn: "7d"
     }
@@ -21,161 +34,248 @@ function generateToken(user) {
 }
 
 /* ======================
-   SANITIZE USER
+   SANITIZE
 ====================== */
-function sanitizeUser(user) {
+
+function sanitizeUser(
+  user
+) {
   return {
     id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    createdAt: user.createdAt
+
+    name:
+      user.name,
+
+    email:
+      user.email,
+
+    role:
+      user.role,
+
+    createdAt:
+      user.createdAt
   };
 }
 
 /* ======================
-   REGISTER USER
+   REGISTER
 ====================== */
-exports.registerUser = async (payload) => {
-  let {name, email, password } = payload;
-  
- email = email.trim().toLowerCase();
 
-  const exists = await User.findOne({ email });
+exports.registerUser =
+  async (
+    payload
+  ) => {
 
-  if (exists) {
-    throw new ApiError(400, "User already exists");
-  }
+    let {
+      name,
+      email,
+      password
+    } = payload;
 
-  const hashedPassword = await bcrypt.hash(payload.password, 12);
+    email =
+      email
+        .trim()
+        .toLowerCase();
 
-  const user = await User.create({
-    name,
-    email,
-    password: hashedPassword
-  });
+    const exists =
+      await User.findOne({
+        email
+      });
 
-  const token = generateToken(user);
+    if (exists) {
+      throw new ApiError(
+        400,
+        "User already exists"
+      );
+    }
 
-  return {
-    token,
-    user: sanitizeUser(user)
+    const hashedPassword =
+      await bcrypt.hash(
+        password,
+        12
+      );
+
+    const user =
+      await User.create({
+        name,
+        email,
+
+        password:
+          hashedPassword
+      });
+
+    return {
+      token:
+        generateToken(user),
+
+      user:
+        sanitizeUser(user)
+    };
   };
-};
 
 /* ======================
-   LOGIN USER
+   LOGIN
 ====================== */
-exports.loginUser = async (payload) => {
-  const email = payload.email.trim().toLowerCase();
 
-  const user = await User.findOne({ email }).select("+password");
+exports.loginUser =
+  async (
+    payload
+  ) => {
 
-  if (!user) {
-    throw new ApiError(401, "Invalid credentials");
-  }
+    const email =
+      payload.email
+        .trim()
+        .toLowerCase();
 
-  const isMatch = await bcrypt.compare(
-    payload.password,
-    user.password
-  );
+    const user =
+      await User.findOne({
+        email
+      }).select(
+        "+password"
+      );
 
-  if (!isMatch) {
-    throw new ApiError(401, "Invalid credentials");
-  }
+    if (!user) {
+      throw new ApiError(
+        401,
+        "Invalid credentials"
+      );
+    }
 
-  const token = generateToken(user);
+    const isMatch =
+      await bcrypt.compare(
+        payload.password,
+        user.password
+      );
 
-  return {
-    token,
-    user: sanitizeUser(user)
+    if (!isMatch) {
+      throw new ApiError(
+        401,
+        "Invalid credentials"
+      );
+    }
+
+    return {
+      token:
+        generateToken(user),
+
+      user:
+        sanitizeUser(user)
+    };
   };
-};
 
 /* ======================
    UPDATE CREDENTIALS
-   (EMAIL / PASSWORD / ADMIN OVERRIDE)
 ====================== */
-exports.updateCredentials = async (user, payload) => {
-  const dbUser = await User.findById(user.id).select("+password");
 
-  if (!dbUser) {
-    throw new ApiError(404, "User not found");
-  }
+exports.updateCredentials =
+  async (
+    user,
+    payload
+  ) => {
 
-  const updates = {};
-
-  /* ======================
-     EMAIL UPDATE
-  ====================== */
-  if (payload.email) {
-    updates.email = payload.email.trim().toLowerCase();
-  }
-
-  /* ======================
-     PASSWORD UPDATE
-  ====================== */
-  if (payload.newPassword) {
-    const adminSecret = payload.adminSecret;
-
-    const isAdmin = dbUser.role === "admin";
-
-    const hasSecret =
-      adminSecret &&
-      adminSecret === process.env.ADMIN_SECRET;
-
-    /* ======================
-       NORMAL MODE (SAFE)
-    ====================== */
-    if (!hasSecret) {
-      if (!payload.currentPassword) {
-        throw new ApiError(
-          400,
-          "Current password required"
-        );
-      }
-
-      const isMatch = await bcrypt.compare(
-        payload.currentPassword,
-        dbUser.password
+    const dbUser =
+      await User.findById(
+        user.id
+      ).select(
+        "+password"
       );
 
-      if (!isMatch) {
-        throw new ApiError(
-          401,
-          "Invalid current password"
-        );
-      }
-    }
-
-    /* ======================
-       ADMIN SECRET OVERRIDE SAFETY
-    ====================== */
-    if (hasSecret && !isAdmin) {
+    if (!dbUser) {
       throw new ApiError(
-        403,
-        "Unauthorized secret usage"
+        404,
+        "User not found"
       );
     }
 
-    updates.password = await bcrypt.hash(
-      payload.newPassword,
-      12
+    const updates = {};
+
+    /* EMAIL */
+
+    if (payload.email) {
+      updates.email =
+        payload.email
+          .trim()
+          .toLowerCase();
+    }
+
+    /* PASSWORD */
+
+    if (
+      payload.newPassword
+    ) {
+
+      const isAdmin =
+        dbUser.role ===
+        "admin";
+
+      const hasSecret =
+        payload.adminSecret &&
+        payload.adminSecret ===
+          process.env.ADMIN_SECRET;
+
+      if (!hasSecret) {
+
+        if (
+          !payload.currentPassword
+        ) {
+          throw new ApiError(
+            400,
+            "Current password required"
+          );
+        }
+
+        const valid =
+          await bcrypt.compare(
+            payload.currentPassword,
+            dbUser.password
+          );
+
+        if (!valid) {
+          throw new ApiError(
+            401,
+            "Invalid current password"
+          );
+        }
+      }
+
+      if (
+        hasSecret &&
+        !isAdmin
+      ) {
+        throw new ApiError(
+          403,
+          "Unauthorized secret usage"
+        );
+      }
+
+      updates.password =
+        await bcrypt.hash(
+          payload.newPassword,
+          12
+        );
+    }
+
+    if (
+      Object.keys(
+        updates
+      ).length === 0
+    ) {
+      throw new ApiError(
+        400,
+        "No valid fields provided"
+      );
+    }
+
+    const updated =
+      await User.findByIdAndUpdate(
+        dbUser._id,
+        updates,
+        {
+          new: true
+        }
+      );
+
+    return sanitizeUser(
+      updated
     );
-  }
-
-  /* ======================
-     NO UPDATE GUARD
-  ====================== */
-  if (Object.keys(updates).length === 0) {
-    throw new ApiError(400, "No valid fields provided");
-  }
-
-  const updated = await User.findByIdAndUpdate(
-    dbUser._id,
-    updates,
-    { new: true }
-  );
-
-  return sanitizeUser(updated);
-};
+  };

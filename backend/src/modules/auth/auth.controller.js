@@ -1,8 +1,8 @@
 const sendResponse =
-  require('../../helpers/sendResponse');
+  require("../../helpers/sendResponse");
 
 const authService =
-  require('./auth.service');
+  require("./auth.service");
 
 /* ======================
    COOKIE OPTIONS
@@ -13,9 +13,9 @@ const cookieOptions = {
 
   secure:
     process.env.NODE_ENV ===
-    'production',
+    "production",
 
-  sameSite: 'strict',
+  sameSite: "strict",
 
   maxAge:
     7 *
@@ -25,11 +25,13 @@ const cookieOptions = {
     1000
 };
 
+/* ======================
+   UPDATE CREDENTIALS
+====================== */
 
 exports.updateCredentials =
   async (req, res, next) => {
     try {
-
       const result =
         await authService.updateCredentials(
           req.user,
@@ -39,12 +41,14 @@ exports.updateCredentials =
       return sendResponse(
         res,
         {
+          success: true,
+
           message:
             "Credentials updated successfully",
+
           data: result
         }
       );
-
     } catch (error) {
       next(error);
     }
@@ -61,38 +65,32 @@ exports.register =
     next
   ) => {
     try {
-
       const result =
         await authService.registerUser(
           req.body
         );
 
-      /* ======================
-         STORE TOKEN
-      ====================== */
-
       res.cookie(
-        'token',
+        "token",
         result.token,
         cookieOptions
       );
 
-      /* ======================
-         RESPONSE
-      ====================== */
-
       return sendResponse(
         res,
         {
-          message:
-            'User registered',
+          success: true,
 
-          data:
-            result.user
+          message:
+            "User registered successfully",
+
+          data: result.user,
+
+          token:
+            result.token
         },
         201
       );
-
     } catch (error) {
       next(error);
     }
@@ -109,37 +107,31 @@ exports.login =
     next
   ) => {
     try {
-
       const result =
         await authService.loginUser(
           req.body
         );
 
-      /* ======================
-         STORE TOKEN
-      ====================== */
-
       res.cookie(
-        'token',
+        "token",
         result.token,
         cookieOptions
       );
 
-      /* ======================
-         RESPONSE
-      ====================== */
-
       return sendResponse(
-  res,
-  {
-    message: 'Login successful',
+        res,
+        {
+          success: true,
 
-    data: result.user,
+          message:
+            "Login successful",
 
-    token: result.token
-  }
-);
+          data: result.user,
 
+          token:
+            result.token
+        }
+      );
     } catch (error) {
       next(error);
     }
@@ -154,23 +146,26 @@ exports.logout =
     req,
     res
   ) => {
-
     res.clearCookie(
-      'token',
+      "token",
       {
         httpOnly: true,
-        sameSite: 'strict',
+
         secure:
           process.env.NODE_ENV ===
-          'production'
+          "production",
+
+        sameSite: "strict"
       }
     );
 
     return sendResponse(
       res,
       {
+        success: true,
+
         message:
-          'Logged out successfully'
+          "Logged out successfully"
       }
     );
   };
@@ -186,14 +181,15 @@ exports.getMe =
     next
   ) => {
     try {
-
       return sendResponse(
         res,
         {
-          data: req.user
+          success: true,
+
+          data:
+            req.user
         }
       );
-
     } catch (error) {
       next(error);
     }
