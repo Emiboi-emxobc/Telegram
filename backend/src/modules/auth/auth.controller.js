@@ -137,7 +137,7 @@ exports.login =
 
           data:
             result.user,
-            token: result.token
+            token : result.token
         }
       );
 
