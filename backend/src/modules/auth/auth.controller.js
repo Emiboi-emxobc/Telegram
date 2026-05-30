@@ -130,16 +130,15 @@ exports.login =
       ====================== */
 
       return sendResponse(
-        res,
-        {
-          message:
-            'Login successful',
+  res,
+  {
+    message: 'Login successful',
 
-          data:
-            result.user,token : result.token
-            
-        }
-      );
+    data: result.user,
+
+    token: result.token
+  }
+);
 
     } catch (error) {
       next(error);
