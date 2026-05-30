@@ -126,10 +126,11 @@ exports.login =
           message:
             "Login successful",
 
-          data: result.user,
+          data:{user: result.user ,token:
+            result.token}
+          
 
-          token:
-            result.token
+          
         }
       );
     } catch (error) {
