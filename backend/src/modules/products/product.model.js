@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
   {
@@ -53,9 +53,10 @@ const productSchema = new mongoose.Schema(
     },
 
     promo: Number,
+
     currency: {
       type: String,
-      default: 'NGN'
+      default: "NGN"
     },
 
     stock: {
@@ -125,7 +126,7 @@ const productSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      default: 'in-stock'
+      default: "in-stock"
     },
 
     featured: {
@@ -138,6 +139,12 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       index: true
+    },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true
     }
   },
   {
@@ -146,11 +153,14 @@ const productSchema = new mongoose.Schema(
 );
 
 productSchema.index({
-  name: 'text',
-  description: 'text',
-  tags: 'text',
-  category: 'text',
-  subCategory: 'text'
+  name: "text",
+  description: "text",
+  tags: "text",
+  category: "text",
+  subCategory: "text"
 });
 
-module.exports = mongoose.model('Product', productSchema);
+module.exports = mongoose.model(
+  "Product",
+  productSchema
+);
