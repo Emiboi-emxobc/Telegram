@@ -14,18 +14,33 @@ exports.getProducts = asyncHandler(async (req, res) => {
   });
 });
 
-exports.getProduct = asyncHandler(async (req, res) => {
-  const product = await productService.getProductBySlug(req.params.slug);
-  
-  if (!product) {
-    throw new ApiError(404, "Product not found");
-  }
-  
-  return sendResponse(res, {
-    message: "Product fetched",
-    data: product
-  });
-});
+exports.getProduct =
+  asyncHandler(
+    async (req, res) => {
+
+      const product =
+        await productService.getProduct(
+          req.params.idOrSlug
+        );
+
+      if (!product) {
+        throw new ApiError(
+          404,
+          "Product not found"
+        );
+      }
+
+      return sendResponse(
+        res,
+        {
+          message:
+            "Product fetched",
+
+          data: product
+        }
+      );
+    }
+  );
 
 exports.createProduct = asyncHandler(async (req, res) => {
   const body = req.body;

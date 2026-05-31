@@ -1,18 +1,45 @@
-const router = require("express").Router();
+const router =
+  require("express")
+  .Router();
 
-const controller = require("./product.controller");
-const auth = require("../../middlewares/auth.middleware");
-const admin = require("../../middlewares/admin.middleware");
-const upload = require("../../middlewares/upload.middleware");
+const controller =
+  require("./product.controller");
 
-router.get("/", controller.getProducts);
-router.get("/:slug", controller.getProduct);
+const auth =
+  require("../../middlewares/auth.middleware");
+
+const admin =
+  require("../../middlewares/admin.middleware");
+
+const upload =
+  require("../../middlewares/upload.middleware");
+
+/* ======================
+   PUBLIC
+====================== */
+
+router.get(
+  "/",
+  controller.getProducts
+);
+
+router.get(
+  "/:idOrSlug",
+  controller.getProduct
+);
+
+/* ======================
+   ADMIN
+====================== */
 
 router.post(
   "/",
   auth,
   admin,
-  upload.array("images", 10),
+  upload.array(
+    "images",
+    10
+  ),
   controller.createProduct
 );
 
@@ -30,4 +57,5 @@ router.delete(
   controller.deleteProduct
 );
 
-module.exports = router;
+module.exports =
+  router;
