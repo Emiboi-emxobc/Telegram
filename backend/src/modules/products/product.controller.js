@@ -121,42 +121,79 @@ exports.createProduct = asyncHandler(
 
 exports.updateProduct = asyncHandler(
   async (req, res) => {
-    const body = {
-      ...req.body
-    };
+    const body = { ...req.body };
 
     let images = [];
 
-    // Existing images coming from form
+    /* ======================
+       1. HANDLE EXISTING IMAGES
+    ====================== */
     if (body.images) {
-      if (
-        Array.isArray(body.images)
-      ) {
-        images = body.images;
-      } else {
-        images = [body.images];
+      let parsed = body.images;
+
+      // if stringified JSON
+      if (typeof parsed === "string") {
+        try {
+          parsed = JSON.parse(parsed);
+        } catch {
+          parsed = [parsed];
+        }
       }
-    }
 
-    // Upload newly added images
-    if (
-      req.files &&
-      req.files.length > 0
-    ) {
-      for (const file of req.files) {
-        const uploaded =
-          await uploadImage(
-            file,
-            "marsdove-products"
-          );
-
-        images.push(
-          uploaded.secure_url
+      if (Array.isArray(parsed)) {
+        images = parsed.filter(
+          (img) => typeof img === "string"
         );
       }
     }
 
-    // Product must always have at least one image
+    /* ======================
+       2. HANDLE NEW FILE UPLOADS
+       (req.files OR object fallback)
+    ====================== */
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const uploaded = await uploadImage(
+          file,
+          "marsdove-products"
+        );
+
+        images.push(uploaded.secure_url);
+      }
+    }
+
+    /* ======================
+       3. HANDLE BROKEN OBJECT IMAGES (YOUR BUG)
+       e.g. [{}] coming from frontend state
+    ====================== */
+    if (Array.isArray(body.images)) {
+      for (const img of body.images) {
+        if (!img) continue;
+
+        // already handled string
+        if (typeof img === "string") continue;
+
+        // treat object as file (defensive fix)
+        if (typeof img === "object") {
+          const uploaded = await uploadImage(
+            img,
+            "marsdove-products"
+          );
+
+          images.push(uploaded.secure_url);
+        }
+      }
+    }
+
+    /* ======================
+       4. CLEAN FINAL ARRAY
+    ====================== */
+    images = images.filter(
+      (img) =>
+        typeof img === "string" &&
+        img.trim().length > 0
+    );
+
     if (images.length === 0) {
       throw new ApiError(
         400,
@@ -164,6 +201,9 @@ exports.updateProduct = asyncHandler(
       );
     }
 
+    /* ======================
+       5. UPDATE PRODUCT
+    ====================== */
     const product =
       await productService.updateProduct(
         req.params.id,
@@ -171,15 +211,11 @@ exports.updateProduct = asyncHandler(
           ...body,
           price:
             body.price !== undefined
-              ? Number(
-                  body.price
-                )
+              ? Number(body.price)
               : undefined,
           stock:
             body.stock !== undefined
-              ? Number(
-                  body.stock
-                )
+              ? Number(body.stock)
               : undefined,
           images
         }
@@ -193,13 +229,11 @@ exports.updateProduct = asyncHandler(
     }
 
     return sendResponse(res, {
-      message:
-        "Product updated",
+      message: "Product updated",
       data: product
     });
   }
 );
-
 /* ======================
    DELETE PRODUCT
 ====================== */
