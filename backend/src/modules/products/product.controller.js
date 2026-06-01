@@ -126,12 +126,11 @@ exports.updateProduct = asyncHandler(
     let images = [];
 
     /* ======================
-       1. HANDLE EXISTING IMAGES
+       1. HANDLE EXISTING IMAGES ONLY (STRINGS)
     ====================== */
     if (body.images) {
       let parsed = body.images;
 
-      // if stringified JSON
       if (typeof parsed === "string") {
         try {
           parsed = JSON.parse(parsed);
@@ -148,10 +147,9 @@ exports.updateProduct = asyncHandler(
     }
 
     /* ======================
-       2. HANDLE NEW FILE UPLOADS
-       (req.files OR object fallback)
+       2. UPLOAD NEW FILES (ONLY req.files)
     ====================== */
-    if (req.files && req.files.length > 0) {
+    if (req.files?.length) {
       for (const file of req.files) {
         const uploaded = await uploadImage(
           file,
@@ -163,37 +161,18 @@ exports.updateProduct = asyncHandler(
     }
 
     /* ======================
-       3. HANDLE BROKEN OBJECT IMAGES (YOUR BUG)
-       e.g. [{}] coming from frontend state
-    ====================== */
-    if (Array.isArray(body.images)) {
-      for (const img of body.images) {
-        if (!img) continue;
-
-        // already handled string
-        if (typeof img === "string") continue;
-
-        // treat object as file (defensive fix)
-        if (typeof img === "object") {
-          const uploaded = await uploadImage(
-            img,
-            "marsdove-products"
-          );
-
-          images.push(uploaded.secure_url);
-        }
-      }
-    }
-
-    /* ======================
-       4. CLEAN FINAL ARRAY
+       3. FINAL SANITIZATION (DEFENSIVE SAFETY)
     ====================== */
     images = images.filter(
       (img) =>
         typeof img === "string" &&
-        img.trim().length > 0
+        img.startsWith("http")
     );
 
+    /* ======================
+       4. BUSINESS RULE
+       MUST HAVE AT LEAST 1 IMAGE
+    ====================== */
     if (images.length === 0) {
       throw new ApiError(
         400,
@@ -202,23 +181,26 @@ exports.updateProduct = asyncHandler(
     }
 
     /* ======================
-       5. UPDATE PRODUCT
+       5. CLEAN PAYLOAD FOR SERVICE
+    ====================== */
+    const payload = {
+      ...body,
+      images,
+      price: body.price !== undefined
+        ? Number(body.price)
+        : undefined,
+      stock: body.stock !== undefined
+        ? Number(body.stock)
+        : undefined
+    };
+
+    /* ======================
+       6. CALL SERVICE
     ====================== */
     const product =
       await productService.updateProduct(
         req.params.id,
-        {
-          ...body,
-          price:
-            body.price !== undefined
-              ? Number(body.price)
-              : undefined,
-          stock:
-            body.stock !== undefined
-              ? Number(body.stock)
-              : undefined,
-          images
-        }
+        payload
       );
 
     if (!product) {
