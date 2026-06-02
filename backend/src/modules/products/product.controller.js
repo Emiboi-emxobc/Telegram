@@ -173,12 +173,7 @@ exports.updateProduct = asyncHandler(
        4. BUSINESS RULE
        MUST HAVE AT LEAST 1 IMAGE
     ====================== */
-    if (images.length === 0) {
-      throw new ApiError(
-        400,
-        "Product image is required"
-      );
-    }
+    
 
     /* ======================
        5. CLEAN PAYLOAD FOR SERVICE
