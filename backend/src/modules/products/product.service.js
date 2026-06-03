@@ -126,10 +126,7 @@ async function updateProduct(id, payload) {
   const images = sanitizeImages(payload.images);
 
   // only enforce rule if images are being updated
-  if (payload.images && images.length === 0) {
-    throw new Error("Product image is required");
-  }
-
+  
   return Product.findOneAndUpdate(
     {
       _id: id,
