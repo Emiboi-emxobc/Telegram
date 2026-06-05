@@ -47,6 +47,10 @@ router.patch(
   "/:id",
   auth,
   admin,
+  upload.array(
+    "images",
+    10
+  ),
   controller.updateProduct
 );
 
