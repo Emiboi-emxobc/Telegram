@@ -3,8 +3,7 @@ require("express");
 
 const  cartController = require("./cart.controller.js");
 
-const protect = require("../middlewares/auth.middleware.js");
-
+const protect = require('../../middlewares/auth.middleware');
 const router =
   express.Router();
 
