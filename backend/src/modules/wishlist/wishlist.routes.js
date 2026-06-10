@@ -5,7 +5,7 @@ const wishlistController =
   require("./wishlist.controller.js");
 
 const protect =
-  require("../auth/auth.middleware.js");
+  require("../middlewares/auth.middleware.js");
 
 const router =
   express.Router();
