@@ -1,5 +1,5 @@
 const mongoose =
-  require("./mongoose");
+  require("mongoose");
 
 const cartSchema =
   new mongoose.Schema(
