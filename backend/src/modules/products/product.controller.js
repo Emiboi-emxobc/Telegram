@@ -123,12 +123,18 @@ exports.updateProduct = asyncHandler(
   async (req, res) => {
     const body = { ...req.body };
 
-    let images = [];
+    const payload = {};
 
     /* ======================
-       1. HANDLE EXISTING IMAGES ONLY (STRINGS)
+       1. HANDLE IMAGES
     ====================== */
-    if (body.images) {
+
+    let images = [];
+    let imagesProvided = false;
+
+    if (body.images !== undefined) {
+      imagesProvided = true;
+
       let parsed = body.images;
 
       if (typeof parsed === "string") {
@@ -146,10 +152,9 @@ exports.updateProduct = asyncHandler(
       }
     }
 
-    /* ======================
-       2. UPLOAD NEW FILES (ONLY req.files)
-    ====================== */
     if (req.files?.length) {
+      imagesProvided = true;
+
       for (const file of req.files) {
         const uploaded = await uploadImage(
           file,
@@ -160,38 +165,57 @@ exports.updateProduct = asyncHandler(
       }
     }
 
-    /* ======================
-       3. FINAL SANITIZATION (DEFENSIVE SAFETY)
-    ====================== */
     images = images.filter(
       (img) =>
         typeof img === "string" &&
         img.startsWith("http")
     );
 
-    /* ======================
-       4. BUSINESS RULE
-       MUST HAVE AT LEAST 1 IMAGE
-    ====================== */
-    
+    /*
+      Only update images if the client
+      actually sent images or files.
+    */
+    if (imagesProvided) {
+      payload.images = images;
+    }
 
     /* ======================
-       5. CLEAN PAYLOAD FOR SERVICE
+       2. COPY OTHER FIELDS
     ====================== */
-    const payload = {
-      ...body,
-      images,
-      price: body.price !== undefined
-        ? Number(body.price)
-        : undefined,
-      stock: body.stock !== undefined
-        ? Number(body.stock)
-        : undefined
-    };
+
+    Object.entries(body).forEach(
+      ([key, value]) => {
+        if (
+          value !== undefined &&
+          key !== "images" &&
+          key !== "price" &&
+          key !== "stock"
+        ) {
+          payload[key] = value;
+        }
+      }
+    );
 
     /* ======================
-       6. CALL SERVICE
+       3. NUMERIC FIELDS
     ====================== */
+
+    if (body.price !== undefined) {
+      payload.price = Number(
+        body.price
+      );
+    }
+
+    if (body.stock !== undefined) {
+      payload.stock = Number(
+        body.stock
+      );
+    }
+
+    /* ======================
+       4. UPDATE PRODUCT
+    ====================== */
+
     const product =
       await productService.updateProduct(
         req.params.id,

@@ -123,19 +123,29 @@ async function createProduct(payload, user) {
 ====================== */
 
 async function updateProduct(id, payload) {
-  const images = sanitizeImages(payload.images);
+  const update = {};
 
-  // only enforce rule if images are being updated
-  
+  // Images
+  if (payload.images !== undefined) {
+    update.images = sanitizeImages(payload.images);
+  }
+
+  // Other fields
+  Object.entries(payload).forEach(([key, value]) => {
+    if (
+      value !== undefined &&
+      key !== "images"
+    ) {
+      update[key] = value;
+    }
+  });
+
   return Product.findOneAndUpdate(
     {
       _id: id,
       isDeleted: false
     },
-    {
-      ...payload,
-      images: payload.images ? images : undefined
-    },
+    update,
     {
       new: true,
       runValidators: true
