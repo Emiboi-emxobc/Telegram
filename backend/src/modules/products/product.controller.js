@@ -5,257 +5,106 @@ const ApiError = require("../../helpers/ApiError");
 const uploadImage = require("../../helpers/uploadImage");
 
 /* ======================
-   GET PRODUCTS
+   SAFE PARSER
 ====================== */
 
-exports.getProducts = asyncHandler(
-  async (req, res) => {
-    const result =
-      await productService.getProducts(
-        req.query
-      );
+function safeParse(value) {
+  if (typeof value !== "string") return value;
 
-    return sendResponse(res, {
-      message: "Products fetched",
-      data: result.products,
-      meta: result.pagination
-    });
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
   }
-);
-
-/* ======================
-   GET PRODUCT
-====================== */
-
-exports.getProduct = asyncHandler(
-  async (req, res) => {
-    const product =
-      await productService.getProduct(
-        req.params.idOrSlug
-      );
-
-    if (!product) {
-      throw new ApiError(
-        404,
-        "Product not found"
-      );
-    }
-
-    return sendResponse(res, {
-      message: "Product fetched",
-      data: product
-    });
-  }
-);
-
-/* ======================
-   CREATE PRODUCT
-====================== */
-
-exports.createProduct = asyncHandler(
-  async (req, res) => {
-    const body = req.body;
-
-    if (
-      !body.name ||
-      !body.price ||
-      !body.category
-    ) {
-      throw new ApiError(
-        400,
-        "Missing required fields"
-      );
-    }
-
-    if (
-      !req.files ||
-      req.files.length === 0
-    ) {
-      throw new ApiError(
-        400,
-        "Product image is required"
-      );
-    }
-
-    const images = [];
-
-    for (const file of req.files) {
-      const uploaded =
-        await uploadImage(
-          file,
-          "marsdove-products"
-        );
-
-      images.push(
-        uploaded.secure_url
-      );
-    }
-
-    const product =
-      await productService.createProduct(
-        {
-          ...body,
-          price: Number(
-            body.price
-          ),
-          stock: Number(
-            body.stock || 0
-          ),
-          images
-        },
-        req.user
-      );
-
-    return sendResponse(res, {
-      statusCode: 201,
-      message:
-        "Product created",
-      data: product
-    });
-  }
-);
+}
 
 /* ======================
    UPDATE PRODUCT
 ====================== */
 
-exports.updateProduct = asyncHandler(
-  async (req, res) => {
-    const body = { ...req.body };
+exports.updateProduct = asyncHandler(async (req, res) => {
+  const body = { ...req.body };
 
-    const payload = {};
+  // normalize ALL incoming formdata strings
+  body.dimensions = safeParse(body.dimensions);
+  body.shipping = safeParse(body.shipping);
+  body.tags = safeParse(body.tags);
+  body.features = safeParse(body.features);
+  body.comments = safeParse(body.comments);
+  body.images = safeParse(body.images);
 
-    /* ======================
-       1. HANDLE IMAGES
-    ====================== */
+  const payload = {};
 
-    let images = [];
-    let imagesProvided = false;
+  /* ======================
+     IMAGES
+  ====================== */
 
-    if (body.images !== undefined) {
-      imagesProvided = true;
+  let images = [];
+  let imagesProvided = false;
 
-      let parsed = body.images;
+  if (body.images !== undefined) {
+    imagesProvided = true;
 
-      if (typeof parsed === "string") {
-        try {
-          parsed = JSON.parse(parsed);
-        } catch {
-          parsed = [parsed];
-        }
-      }
+    let parsed = body.images;
 
-      if (Array.isArray(parsed)) {
-        images = parsed.filter(
-          (img) => typeof img === "string"
-        );
-      }
-    }
-
-    if (req.files?.length) {
-      imagesProvided = true;
-
-      for (const file of req.files) {
-        const uploaded = await uploadImage(
-          file,
-          "marsdove-products"
-        );
-
-        images.push(uploaded.secure_url);
+    if (typeof parsed === "string") {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        parsed = [parsed];
       }
     }
 
-    images = images.filter(
-      (img) =>
-        typeof img === "string" &&
-        img.startsWith("http")
-    );
-
-    /*
-      Only update images if the client
-      actually sent images or files.
-    */
-    if (imagesProvided) {
-      payload.images = images;
+    if (Array.isArray(parsed)) {
+      images = parsed.filter(img => typeof img === "string");
     }
-
-    /* ======================
-       2. COPY OTHER FIELDS
-    ====================== */
-
-    Object.entries(body).forEach(
-      ([key, value]) => {
-        if (
-          value !== undefined &&
-          key !== "images" &&
-          key !== "price" &&
-          key !== "stock"
-        ) {
-          payload[key] = value;
-        }
-      }
-    );
-
-    /* ======================
-       3. NUMERIC FIELDS
-    ====================== */
-
-    if (body.price !== undefined) {
-      payload.price = Number(
-        body.price
-      );
-    }
-
-    if (body.stock !== undefined) {
-      payload.stock = Number(
-        body.stock
-      );
-    }
-
-    /* ======================
-       4. UPDATE PRODUCT
-    ====================== */
-
-    const product =
-      await productService.updateProduct(
-        req.params.id,
-        payload
-      );
-
-    if (!product) {
-      throw new ApiError(
-        404,
-        "Product not found"
-      );
-    }
-
-    return sendResponse(res, {
-      message: "Product updated",
-      data: product
-    });
   }
-);
-/* ======================
-   DELETE PRODUCT
-====================== */
 
-exports.deleteProduct = asyncHandler(
-  async (req, res) => {
-    const product =
-      await productService.deleteProduct(
-        req.params.id
-      );
+  if (req.files?.length) {
+    imagesProvided = true;
 
-    if (!product) {
-      throw new ApiError(
-        404,
-        "Product not found"
-      );
+    for (const file of req.files) {
+      const uploaded = await uploadImage(file, "marsdove-products");
+      images.push(uploaded.secure_url);
     }
-
-    return sendResponse(res, {
-      message:
-        "Product deleted"
-    });
   }
-);
+
+  if (imagesProvided) {
+    payload.images = images.filter(img => img?.startsWith("http"));
+  }
+
+  /* ======================
+     OTHER FIELDS
+  ====================== */
+
+  Object.entries(body).forEach(([key, value]) => {
+    if (
+      value !== undefined &&
+      !["images", "price", "stock"].includes(key)
+    ) {
+      payload[key] = value;
+    }
+  });
+
+  if (body.price !== undefined) {
+    payload.price = Number(body.price);
+  }
+
+  if (body.stock !== undefined) {
+    payload.stock = Number(body.stock);
+  }
+
+  const product = await productService.updateProduct(
+    req.params.id,
+    payload
+  );
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return sendResponse(res, {
+    message: "Product updated",
+    data: product
+  });
+});

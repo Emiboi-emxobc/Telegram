@@ -3,6 +3,39 @@ const slugify = require("slugify");
 const Product = require("./product.model");
 
 /* ======================
+   SAFE JSON PARSER
+====================== */
+
+function safeParse(value) {
+  if (typeof value !== "string") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+/* ======================
+   DEEP NORMALIZER
+====================== */
+
+function deepNormalize(payload = {}) {
+  const cleaned = {};
+
+  for (const [key, value] of Object.entries(payload)) {
+    let val = value;
+
+    // unwrap JSON strings
+    val = safeParse(val);
+
+    cleaned[key] = val;
+  }
+
+  return cleaned;
+}
+
+/* ======================
    GET PRODUCTS
 ====================== */
 
@@ -81,7 +114,7 @@ async function getProduct(idOrSlug) {
 }
 
 /* ======================
-   SANITIZE IMAGES (CORE FIX)
+   SANITIZE IMAGES
 ====================== */
 
 function sanitizeImages(images = []) {
@@ -95,11 +128,13 @@ function sanitizeImages(images = []) {
 }
 
 /* ======================
-   CREATE
+   CREATE PRODUCT
 ====================== */
 
 async function createProduct(payload, user) {
-  const images = sanitizeImages(payload.images);
+  const clean = deepNormalize(payload);
+
+  const images = sanitizeImages(clean.images);
 
   if (images.length === 0) {
     throw new Error("Product image is required");
@@ -108,44 +143,39 @@ async function createProduct(payload, user) {
   return Product.create({
     id: crypto.randomUUID(),
     sku: `SKU-${Date.now()}`,
-    slug: slugify(payload.name, {
+    slug: slugify(clean.name, {
       lower: true,
       strict: true
     }),
     createdBy: user?.id || null,
-    ...payload,
+    ...clean,
     images
   });
 }
 
 /* ======================
-   UPDATE
+   UPDATE PRODUCT (PATCH SAFE)
 ====================== */
 
 async function updateProduct(id, payload) {
+  const clean = deepNormalize(payload);
+
   const update = {};
 
-  // Images
-  if (payload.images !== undefined) {
-    update.images = sanitizeImages(payload.images);
+  if (clean.images !== undefined) {
+    update.images = sanitizeImages(clean.images);
   }
 
-  // Other fields
-  Object.entries(payload).forEach(([key, value]) => {
-    if (
-      value !== undefined &&
-      key !== "images"
-    ) {
-      update[key] = value;
-    }
-  });
+  for (const [key, value] of Object.entries(clean)) {
+    if (value === undefined) continue;
+    if (key === "images") continue;
+
+    update[key] = value;
+  }
 
   return Product.findOneAndUpdate(
-    {
-      _id: id,
-      isDeleted: false
-    },
-    update,
+    { _id: id, isDeleted: false },
+    { $set: update },
     {
       new: true,
       runValidators: true
@@ -154,7 +184,7 @@ async function updateProduct(id, payload) {
 }
 
 /* ======================
-   DELETE
+   DELETE PRODUCT
 ====================== */
 
 async function deleteProduct(id) {
