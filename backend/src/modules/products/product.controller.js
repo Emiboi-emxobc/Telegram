@@ -5,33 +5,110 @@ const ApiError = require("../../helpers/ApiError");
 const uploadImage = require("../../helpers/uploadImage");
 
 /* ======================
-   SAFE PARSER
+   BODY NORMALIZER (ONE PASS ONLY)
 ====================== */
 
-function safeParse(value) {
-  if (typeof value !== "string") return value;
+function normalizeBody(body = {}) {
+  const parsed = { ...body };
 
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
+  const fields = [
+    "dimensions",
+    "shipping",
+    "tags",
+    "features",
+    "comments",
+    "images"
+  ];
+
+  for (const key of fields) {
+    if (typeof parsed[key] === "string") {
+      try {
+        parsed[key] = JSON.parse(parsed[key]);
+      } catch {
+        parsed[key] = parsed[key];
+      }
+    }
   }
+
+  return parsed;
 }
+
+/* ======================
+   GET PRODUCTS
+====================== */
+
+exports.getProducts = asyncHandler(async (req, res) => {
+  const result = await productService.getProducts(req.query);
+
+  return sendResponse(res, {
+    message: "Products fetched",
+    data: result.products,
+    meta: result.pagination
+  });
+});
+
+/* ======================
+   GET PRODUCT
+====================== */
+
+exports.getProduct = asyncHandler(async (req, res) => {
+  const product = await productService.getProduct(req.params.idOrSlug);
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return sendResponse(res, {
+    message: "Product fetched",
+    data: product
+  });
+});
+
+/* ======================
+   CREATE PRODUCT
+====================== */
+
+exports.createProduct = asyncHandler(async (req, res) => {
+  const body = normalizeBody(req.body);
+
+  if (!body.name || !body.price || !body.category) {
+    throw new ApiError(400, "Missing required fields");
+  }
+
+  if (!req.files || req.files.length === 0) {
+    throw new ApiError(400, "Product image is required");
+  }
+
+  const images = [];
+
+  for (const file of req.files) {
+    const uploaded = await uploadImage(file, "marsdove-products");
+    images.push(uploaded.secure_url);
+  }
+
+  const product = await productService.createProduct(
+    {
+      ...body,
+      price: Number(body.price),
+      stock: Number(body.stock || 0),
+      images
+    },
+    req.user
+  );
+
+  return sendResponse(res, {
+    statusCode: 201,
+    message: "Product created",
+    data: product
+  });
+});
 
 /* ======================
    UPDATE PRODUCT
 ====================== */
 
 exports.updateProduct = asyncHandler(async (req, res) => {
-  const body = { ...req.body };
-
-  // normalize ALL incoming formdata strings
-  body.dimensions = safeParse(body.dimensions);
-  body.shipping = safeParse(body.shipping);
-  body.tags = safeParse(body.tags);
-  body.features = safeParse(body.features);
-  body.comments = safeParse(body.comments);
-  body.images = safeParse(body.images);
+  const body = normalizeBody(req.body);
 
   const payload = {};
 
@@ -42,34 +119,20 @@ exports.updateProduct = asyncHandler(async (req, res) => {
   let images = [];
   let imagesProvided = false;
 
-  if (body.images !== undefined) {
+  if (body.images !== undefined || req.files?.length) {
     imagesProvided = true;
 
-    let parsed = body.images;
+    if (Array.isArray(body.images)) {
+      images = body.images.filter(img => typeof img === "string");
+    }
 
-    if (typeof parsed === "string") {
-      try {
-        parsed = JSON.parse(parsed);
-      } catch {
-        parsed = [parsed];
+    if (req.files?.length) {
+      for (const file of req.files) {
+        const uploaded = await uploadImage(file, "marsdove-products");
+        images.push(uploaded.secure_url);
       }
     }
 
-    if (Array.isArray(parsed)) {
-      images = parsed.filter(img => typeof img === "string");
-    }
-  }
-
-  if (req.files?.length) {
-    imagesProvided = true;
-
-    for (const file of req.files) {
-      const uploaded = await uploadImage(file, "marsdove-products");
-      images.push(uploaded.secure_url);
-    }
-  }
-
-  if (imagesProvided) {
     payload.images = images.filter(img => img?.startsWith("http"));
   }
 
@@ -77,14 +140,20 @@ exports.updateProduct = asyncHandler(async (req, res) => {
      OTHER FIELDS
   ====================== */
 
-  Object.entries(body).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(body)) {
     if (
       value !== undefined &&
-      !["images", "price", "stock"].includes(key)
+      key !== "images" &&
+      key !== "price" &&
+      key !== "stock"
     ) {
       payload[key] = value;
     }
-  });
+  }
+
+  /* ======================
+     NUMERIC FIELDS
+  ====================== */
 
   if (body.price !== undefined) {
     payload.price = Number(body.price);
@@ -106,5 +175,21 @@ exports.updateProduct = asyncHandler(async (req, res) => {
   return sendResponse(res, {
     message: "Product updated",
     data: product
+  });
+});
+
+/* ======================
+   DELETE PRODUCT
+====================== */
+
+exports.deleteProduct = asyncHandler(async (req, res) => {
+  const product = await productService.deleteProduct(req.params.id);
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  return sendResponse(res, {
+    message: "Product deleted"
   });
 });

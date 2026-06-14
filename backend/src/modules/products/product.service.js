@@ -3,36 +3,17 @@ const slugify = require("slugify");
 const Product = require("./product.model");
 
 /* ======================
-   SAFE JSON PARSER
+   SANITIZE IMAGES
 ====================== */
 
-function safeParse(value) {
-  if (typeof value !== "string") return value;
+function sanitizeImages(images = []) {
+  if (!Array.isArray(images)) return [];
 
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-}
-
-/* ======================
-   DEEP NORMALIZER
-====================== */
-
-function deepNormalize(payload = {}) {
-  const cleaned = {};
-
-  for (const [key, value] of Object.entries(payload)) {
-    let val = value;
-
-    // unwrap JSON strings
-    val = safeParse(val);
-
-    cleaned[key] = val;
-  }
-
-  return cleaned;
+  return images.filter(
+    img =>
+      typeof img === "string" &&
+      img.startsWith("http")
+  );
 }
 
 /* ======================
@@ -114,59 +95,41 @@ async function getProduct(idOrSlug) {
 }
 
 /* ======================
-   SANITIZE IMAGES
-====================== */
-
-function sanitizeImages(images = []) {
-  if (!Array.isArray(images)) return [];
-
-  return images.filter(
-    (img) =>
-      typeof img === "string" &&
-      img.trim().startsWith("http")
-  );
-}
-
-/* ======================
    CREATE PRODUCT
 ====================== */
 
 async function createProduct(payload, user) {
-  const clean = deepNormalize(payload);
+  const images = sanitizeImages(payload.images);
 
-  const images = sanitizeImages(clean.images);
-
-  if (images.length === 0) {
+  if (!images.length) {
     throw new Error("Product image is required");
   }
 
   return Product.create({
     id: crypto.randomUUID(),
     sku: `SKU-${Date.now()}`,
-    slug: slugify(clean.name, {
+    slug: slugify(payload.name, {
       lower: true,
       strict: true
     }),
     createdBy: user?.id || null,
-    ...clean,
+    ...payload,
     images
   });
 }
 
 /* ======================
-   UPDATE PRODUCT (PATCH SAFE)
+   UPDATE PRODUCT
 ====================== */
 
 async function updateProduct(id, payload) {
-  const clean = deepNormalize(payload);
-
   const update = {};
 
-  if (clean.images !== undefined) {
-    update.images = sanitizeImages(clean.images);
+  if (payload.images !== undefined) {
+    update.images = sanitizeImages(payload.images);
   }
 
-  for (const [key, value] of Object.entries(clean)) {
+  for (const [key, value] of Object.entries(payload)) {
     if (value === undefined) continue;
     if (key === "images") continue;
 
