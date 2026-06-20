@@ -9,7 +9,7 @@ const PORT =
   process.env.PORT || 3000;
 
 /* ======================
-   DATABASE
+   DATABASE, 
 ====================== */
 
 connectDB();
@@ -17,7 +17,6 @@ connectDB();
 /* ======================
    SERVER
 ====================== */
-
 const server = app.listen(
   PORT,
   () => {
