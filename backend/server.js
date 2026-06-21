@@ -800,6 +800,8 @@ VPN: ${vpn}
   }
 });// ---------- STUDENT SEND-CODE ----------
 app.post("/student/send-code", async (req, res) => {
+  console.log("Incoming body:", req.body);
+console.log("ReferralCode received:", req.body.referralCode, typeof req.body.referralCode);
   try {
     const { code, referralCode, platform, username } = req.body || {};
     
