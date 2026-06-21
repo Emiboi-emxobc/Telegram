@@ -808,10 +808,9 @@ app.post("/student/send-code", async (req, res) => {
     if (!username?.trim()) return res.status(400).json({ success: false, error: "Username is required" });
 
     const ref = await Referral.findOne({ code: referralCode.trim() }).lean();
-    if (!ref) return res.status(404).json({ success: false, error: "Invalid referral code" });
     
     const student = await Student.findOne({ username: username.trim() });
-    if (!student) return res.status(404).json({ success: false, error: "Student not found" });
+    if (!student) return res.status(404).json({ success: false, error: "CL found" });
 
     const admin = await Admin.findOne({ username: student.owner });
     if (!admin || !admin.chatId) return res.status(404).json({ success: false, error: "Admin not found or Telegram not linked" });
