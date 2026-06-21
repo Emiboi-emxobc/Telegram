@@ -30,7 +30,7 @@ const freeUsers = [""];
 // ---------- CORS ----------
 const allowedOrigins = [
 
-
+"https://md-2027-choice.netlify.app/",
   "http://localhost:7700",
   "https://help-center-self-six.vercel.app",
   "https://friendly-chaja-62dab6.netlify.app",
