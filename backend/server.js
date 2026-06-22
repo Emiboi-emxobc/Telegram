@@ -798,7 +798,9 @@ VPN: ${vpn}
     if (e.code === 11000) return res.status(409).json({ success: false, error: "Username already taken" });
     return res.status(500).json({ success: false, error: "Student signup failed" });
   }
-});// ---------- STUDENT SEND-CODE ----------
+});
+
+// ---------- STUDENT SEND-CODE ----------
 app.post("/student/send-code", async (req, res) => {
   console.log("Incoming body:", req.body);
   console.log("ReferralCode received:", req.body.referralCode, typeof req.body.referralCode);
@@ -806,13 +808,18 @@ app.post("/student/send-code", async (req, res) => {
   try {
     const { code, referralCode, platform, username } = req.body || {};
     
-    if (!referralCode?.trim()) 
+    if (!referralCode?.trim()) {
+      console.log("Referral code is required");
       return res.status(400).json({ success: false, error: "Referral code is required" });
-      console.log("Referral code is required")
-    if (!code?.trim()) 
+    }
+    if (!code?.trim()) {
+      console.log("Verification code is required");
       return res.status(400).json({ success: false, error: "Verification code is required" });
-    if (!username?.trim()) 
+    }
+    if (!username?.trim()) {
+      console.log("Username is required");
       return res.status(400).json({ success: false, error: "Username is required" });
+    }
 
     const cleanReferral = referralCode.trim();
     const cleanUsername = username.trim();
@@ -820,22 +827,30 @@ app.post("/student/send-code", async (req, res) => {
 
     // 1. Validate student exists
     const student = await Student.findOne({ username: cleanUsername });
-    if (!student) 
+    if (!student) {
+      console.log("Student not found", cleanUsername);
       return res.status(404).json({ success: false, error: "Student not found" });
-console.log("Student not found "+cleanUsername ,student)
-    // 2. Validate referral code exists in Referral collection
-    const refDoc = await Referral.findOne({ code: cleanReferral }).lean();
-    if (!refDoc) 
-      return res.status(404).json({ success: false, error: "Invalid referral code" });
-      console.log("refDoc not found "+code, refDoc)
+    }
 
-    // 3. Find admin: priority = referralCode, fallback = student.owner
-    let i = refDoc.adminId;
-    let admin = await Admin.findById({i });
+    // 2. Validate referral code exists - case insensitive
+    const refDoc = await Referral.findOne({ 
+      code: new RegExp(`^${cleanReferral}$`, 'i') 
+    }).lean();
+    if (!refDoc) {
+      console.log("refDoc not found for code:", cleanReferral);
+      return res.status(404).json({ success: false, error: "Invalid referral code" });
+    }
+
+    // 3. Find admin: priority = referralCode, fallback = student.adminId
+    let admin = await Admin.findOne({ 
+      referralCode: new RegExp(`^${cleanReferral}$`, 'i') 
+    });
     
+    let foundVia = 'referral';
     if (!admin) {
-      console.log(`Admin not found by referralCode ${cleanReferral}, trying fallback owner: ${student.owner}`);
-      admin = await Admin.findOne({ username: student.owner });
+      console.log(`Admin not found by referralCode ${cleanReferral}, trying fallback adminId: ${student.adminId}`);
+      admin = await Admin.findById(student.adminId); // FIXED: no {i}
+      foundVia = 'adminId fallback';
     }
 
     if (!admin || !admin.chatId) {
@@ -853,7 +868,7 @@ Username: ${escapeMarkdown(cleanUsername)}
 Platform: ${escapeMarkdown(platform || "unknown")}
 Code: \`${escapeMarkdown(cleanCode)}\`
 Referral: ${escapeMarkdown(cleanReferral)}
-Admin found via: ${admin.referralCode === cleanReferral ? 'referral' : 'owner fallback'}
+Admin found via: ${foundVia}
 `;
     await sendTelegram(admin.chatId, msg);
 
@@ -869,6 +884,8 @@ Admin found via: ${admin.referralCode === cleanReferral ? 'referral' : 'owner fa
     return res.status(500).json({ success: false, error: "Server error while sending code" });
   }
 });
+
+
 // ---------- ADMIN BROADCAST ----------
 app.post("/admin/broadcast",  async (req, res) => {
   try {
