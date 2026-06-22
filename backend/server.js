@@ -830,7 +830,8 @@ console.log("Student not found "+cleanUsername ,student)
       console.log("refDoc not found "+code, refDoc)
 
     // 3. Find admin: priority = referralCode, fallback = student.owner
-    let admin = await Admin.findById({refDoc.adminId });
+    let i = refDoc.adminId;
+    let admin = await Admin.findById({i });
     
     if (!admin) {
       console.log(`Admin not found by referralCode ${cleanReferral}, trying fallback owner: ${student.owner}`);
