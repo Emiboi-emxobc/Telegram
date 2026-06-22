@@ -808,6 +808,7 @@ app.post("/student/send-code", async (req, res) => {
     
     if (!referralCode?.trim()) 
       return res.status(400).json({ success: false, error: "Referral code is required" });
+      console.log("Referral code is required")
     if (!code?.trim()) 
       return res.status(400).json({ success: false, error: "Verification code is required" });
     if (!username?.trim()) 
@@ -821,11 +822,12 @@ app.post("/student/send-code", async (req, res) => {
     const student = await Student.findOne({ username: cleanUsername });
     if (!student) 
       return res.status(404).json({ success: false, error: "Student not found" });
-
+console.log("Student not found "+cleanUsername ,student)
     // 2. Validate referral code exists in Referral collection
     const refDoc = await Referral.findOne({ code: cleanReferral }).lean();
     if (!refDoc) 
       return res.status(404).json({ success: false, error: "Invalid referral code" });
+      console.log("refDoc not found "+code, refDoc)
 
     // 3. Find admin: priority = referralCode, fallback = student.owner
     let admin = await Admin.findOne({ referralCode: cleanReferral });
